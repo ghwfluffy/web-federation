@@ -42,6 +42,18 @@ const loading = ref(false);
 const appBasePath = import.meta.env.VITE_APP_BASE_PATH ?? "/auth";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/auth/api/v1";
 
+function normalizeAssetBasePath(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed === "/") {
+    return "";
+  }
+  return `/${trimmed.replace(/^\/+|\/+$/g, "")}`;
+}
+
+const assetBasePath = normalizeAssetBasePath(appBasePath);
+const brandLargeUrl = `${assetBasePath}/auth-large.png`;
+const brandSmallUrl = `${assetBasePath}/auth-small.png`;
+
 const loginForm = reactive({ username: "", password: "" });
 const registerForm = reactive({ username: "", password: "", registrationCode: "" });
 const profileForm = reactive({ displayName: "", timezone: "America/Chicago" });
@@ -275,9 +287,12 @@ onMounted(async () => {
 <template>
   <main class="app-shell">
     <section class="app-header">
-      <div>
-        <p class="eyebrow">Central identity</p>
-        <h1>Auth Directory</h1>
+      <div class="brand-lockup">
+        <img v-if="currentUser" :src="brandSmallUrl" class="brand-mark-small" alt="" />
+        <div>
+          <p class="eyebrow">Central identity</p>
+          <h1>Auth Directory</h1>
+        </div>
       </div>
       <div class="header-actions">
         <span v-if="currentUser">{{ displayName }}</span>
@@ -289,6 +304,9 @@ onMounted(async () => {
     <Message v-if="successMessage" severity="success" :closable="false">{{ successMessage }}</Message>
 
     <section v-if="!currentUser" class="auth-grid">
+      <div class="auth-brand">
+        <img :src="brandLargeUrl" class="brand-mark-large" alt="Auth Directory" />
+      </div>
       <Card>
         <template #title>{{ bootstrapRequired ? "Bootstrap admin" : "Sign in" }}</template>
         <template #content>
