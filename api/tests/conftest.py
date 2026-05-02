@@ -28,6 +28,7 @@ def isolated_client() -> Generator[TestClient]:
     )
     Base.metadata.create_all(engine)
     TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    app.state.testing_session_local = TestingSessionLocal
 
     def override_get_db() -> Generator[Session]:
         db = TestingSessionLocal()
@@ -42,3 +43,5 @@ def isolated_client() -> Generator[TestClient]:
             yield test_client
     finally:
         app.dependency_overrides.clear()
+        if hasattr(app.state, "testing_session_local"):
+            delattr(app.state, "testing_session_local")
