@@ -8,8 +8,9 @@
 4. Add directory entries and launch links.
 5. Migrate `goals` to OAuth.
 6. Migrate `money-planner` to OAuth.
-7. Disable native auth/user-management flows in consumer apps.
-8. Remove old password/register/profile code after backups and validation.
+7. Verify both consumer apps still work in default standalone local-auth mode.
+8. Verify both consumer apps switch to central IAM only with explicit `.env` config.
+9. Disable native auth/user-management flows only while each consumer app runs in OAuth mode.
 
 ## Environment Matrix
 
@@ -60,19 +61,23 @@ Verify in browser devtools and automated smoke tests:
 
 `goals`:
 
+- default `AUTH_MODE=local` preserves local login/register/profile/user-management behavior.
+- `AUTH_MODE=oauth` enables OAuth callback and central identity redirects.
 - OAuth callback creates app session.
 - Central `sub` links to local user.
 - Domain ownership checks still reject cross-user access.
-- Local login/register/profile/password/avatar routes redirect or are disabled as planned.
+- Local login/register/profile/password/avatar routes remain local in local mode and redirect or are disabled as planned in OAuth mode.
 - Cookie path is app-scoped.
 - Auth payload includes central avatar URL.
 
 `money-planner`:
 
+- default `AUTH_MODE=local` preserves local login/register/profile/user-management behavior.
+- `AUTH_MODE=oauth` enables OAuth callback and central identity redirects.
 - OAuth callback creates app session.
 - Central `sub` links to local user.
 - Domain ownership checks still reject cross-user access.
-- Local login/register/password/avatar routes redirect or are disabled as planned.
+- Local login/register/password/avatar routes remain local in local mode and redirect or are disabled as planned in OAuth mode.
 - Existing widget-token behavior remains local.
 - Cookie path remains app-scoped.
 
@@ -90,12 +95,13 @@ Verify in browser devtools and automated smoke tests:
 
 Consumer apps:
 
-- unauthenticated user gets OAuth login redirect
-- OAuth callback returns to app shell
-- header/profile image uses central avatar URL
-- user-management menu opens configured auth user-management URL
-- registration-code management opens configured auth registration-code URL
-- app-domain profile preferences remain available only where still local
+- local mode shows native login/register/profile/user-management UI
+- OAuth mode unauthenticated user gets OAuth login redirect
+- OAuth mode callback returns to app shell
+- OAuth mode header/profile image uses central avatar URL
+- OAuth mode user-management menu opens configured auth user-management URL
+- OAuth mode registration-code management opens configured auth registration-code URL
+- app-domain profile preferences remain available in both modes where applicable
 
 ## End-To-End Smoke
 
@@ -115,6 +121,7 @@ Run a full three-app smoke:
 12. Confirm both consumer app headers show the updated avatar URL.
 13. Open user management from each consumer app and confirm it redirects to the configured auth user-management URL.
 14. Log out of one consumer app and confirm the other app and central auth app behave according to the logout contract.
+15. Switch each consumer app back to default local auth config and confirm local login/register still work.
 
 ## Data Migration Checklist
 
@@ -132,14 +139,15 @@ During migration:
 - Backfill `identity_provider=<configured issuer key>` and `external_subject`.
 - Preserve local `users.id`.
 - Keep local admin flags unless central role mapping is explicitly implemented.
-- Disable local browser registration first, then local browser password login.
+- Disable local browser registration and password login only in OAuth mode.
 
 After migration:
 
 - Verify every user-owned domain record still resolves to the intended local user.
 - Verify admin-only screens remain protected.
 - Verify backups still work.
-- Verify no consumer app can create a new local password account from the browser.
+- Verify consumer apps cannot create a new local password account from the browser in OAuth mode.
+- Verify consumer apps can still create local password accounts in default local mode.
 - Schedule deletion or archival of obsolete local password hashes.
 
 ## Rollback Plan
@@ -148,7 +156,7 @@ Rollback should be possible until local auth is removed.
 
 Steps:
 
-- Re-enable consumer local login feature flag.
+- Re-enable or keep default consumer local login mode by setting `AUTH_MODE=local`.
 - Keep identity-link columns; they are additive.
 - Restore previous frontend login/profile menu if needed.
 - Do not delete local password hashes until the OAuth rollout has survived a production-like validation period.
@@ -178,8 +186,9 @@ Add or update:
 The migration is complete when:
 
 - the central auth app owns login, registration, profile image, password change, users, and registration codes.
-- Both consumer apps use OAuth for new sessions.
-- Both consumer apps redirect identity management to configured auth management URLs.
+- Both consumer apps use OAuth for new sessions only when configured with `AUTH_MODE=oauth`.
+- Both consumer apps redirect identity management to configured auth management URLs only in OAuth mode.
+- Both consumer apps remain usable as standalone webapps with default local auth configuration.
 - Consumer cookies are app-scoped and do not collide.
 - Existing user-owned data remains attached to the correct local users.
 - Directory launch links work for both apps.
