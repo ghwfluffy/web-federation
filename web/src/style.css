@@ -71,7 +71,7 @@ select {
 }
 
 .brand-mark-large {
-  width: min(240px, 70vw);
+  width: min(280px, 100%);
   height: auto;
   object-fit: contain;
 }
@@ -94,6 +94,23 @@ select {
 .code-list {
   display: grid;
   gap: 16px;
+}
+
+.auth-grid {
+  grid-template-columns: minmax(220px, 0.85fr) minmax(340px, 1.15fr);
+  align-items: center;
+  width: min(920px, 100%);
+  margin: 36px auto 0;
+}
+
+.auth-grid > .p-card {
+  width: 100%;
+}
+
+.form-grid .p-inputtext,
+.form-grid .p-password,
+.form-grid .p-password-input {
+  width: 100%;
 }
 
 .site-grid {
@@ -260,6 +277,15 @@ td {
 
   .brand-lockup {
     align-items: flex-start;
+  }
+
+  .auth-grid {
+    grid-template-columns: 1fr;
+    margin-top: 20px;
+  }
+
+  .brand-mark-large {
+    width: min(220px, 70vw);
   }
 
   .status-panel dl {
