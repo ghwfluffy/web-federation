@@ -84,6 +84,7 @@ class RegistrationCode(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     code_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    code_value: Mapped[str | None] = mapped_column(String(32), nullable=True)
     description: Mapped[str | None] = mapped_column(String(200), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

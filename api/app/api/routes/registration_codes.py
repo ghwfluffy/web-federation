@@ -47,7 +47,7 @@ def serialize_registration_code(
 ) -> RegistrationCodeSummary:
     return RegistrationCodeSummary(
         id=code.id,
-        code=raw_code,
+        code=raw_code or code.code_value,
         description=code.description,
         expires_at=code.expires_at.isoformat(),
         revoked_at=code.revoked_at.isoformat() if code.revoked_at else None,
@@ -75,6 +75,7 @@ def create_registration_code(
     now = utcnow()
     code = RegistrationCode(
         code_hash=hash_token(raw_code),
+        code_value=raw_code,
         description=payload.description,
         expires_at=payload.expires_at,
         created_by_user_id=admin.id,

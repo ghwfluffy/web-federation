@@ -55,6 +55,11 @@ def test_registration_codes_allow_signup(isolated_client: TestClient) -> None:
     assert len(raw_code) == 16
     assert raw_code.isalnum()
 
+    list_response = isolated_client.get("/api/v1/registration-codes")
+    assert list_response.status_code == 200
+    listed_code = list_response.json()["registration_codes"][0]["code"]
+    assert listed_code == raw_code
+
     isolated_client.post("/api/v1/auth/logout")
     register_response = isolated_client.post(
         "/api/v1/auth/register",

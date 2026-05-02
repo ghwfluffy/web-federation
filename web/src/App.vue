@@ -295,6 +295,19 @@ async function deleteCode(code: RegistrationCodeSummary): Promise<void> {
   }
 }
 
+async function copyCode(code: RegistrationCodeSummary): Promise<void> {
+  if (!code.code) {
+    showError(new Error("This code is not available to copy."), "Unable to copy registration code.");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(code.code);
+    showSuccess("Registration code copied.");
+  } catch (error) {
+    showError(error, "Unable to copy registration code.");
+  }
+}
+
 onMounted(async () => {
   await Promise.all([statusStore.loadStatus(), restoreSession()]);
   await loadAdminData();
@@ -455,11 +468,18 @@ onMounted(async () => {
                   <article v-for="code in registrationCodes" :key="code.id" class="code-row">
                     <div>
                       <strong>{{ code.description || "Registration code" }}</strong>
-                      <p v-if="code.code">New code: {{ code.code }}</p>
+                      <p class="registration-code-value">Code: {{ code.code || "Unavailable" }}</p>
                       <p>Expires {{ new Date(code.expires_at).toLocaleString() }}</p>
                       <p>{{ code.revoked_at ? "Revoked" : "Active" }}</p>
                     </div>
                     <div class="row-actions">
+                      <Button
+                        label="Copy"
+                        icon="pi pi-copy"
+                        severity="secondary"
+                        :disabled="!code.code"
+                        @click="copyCode(code)"
+                      />
                       <Button
                         label="Revoke"
                         icon="pi pi-ban"
