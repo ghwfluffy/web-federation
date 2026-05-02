@@ -282,6 +282,19 @@ async function revokeCode(code: RegistrationCodeSummary): Promise<void> {
   }
 }
 
+async function deleteCode(code: RegistrationCodeSummary): Promise<void> {
+  if (!window.confirm("Delete this registration code?")) {
+    return;
+  }
+  try {
+    await deleteRequest(`/registration-codes/${code.id}`);
+    await loadAdminData();
+    showSuccess("Registration code deleted.");
+  } catch (error) {
+    showError(error, "Unable to delete registration code.");
+  }
+}
+
 onMounted(async () => {
   await Promise.all([statusStore.loadStatus(), restoreSession()]);
   await loadAdminData();
@@ -446,13 +459,16 @@ onMounted(async () => {
                       <p>Expires {{ new Date(code.expires_at).toLocaleString() }}</p>
                       <p>{{ code.revoked_at ? "Revoked" : "Active" }}</p>
                     </div>
-                    <Button
-                      label="Revoke"
-                      icon="pi pi-ban"
-                      severity="secondary"
-                      :disabled="code.revoked_at !== null"
-                      @click="revokeCode(code)"
-                    />
+                    <div class="row-actions">
+                      <Button
+                        label="Revoke"
+                        icon="pi pi-ban"
+                        severity="secondary"
+                        :disabled="code.revoked_at !== null"
+                        @click="revokeCode(code)"
+                      />
+                      <Button label="Delete" icon="pi pi-trash" severity="danger" @click="deleteCode(code)" />
+                    </div>
                   </article>
                 </div>
               </template>
