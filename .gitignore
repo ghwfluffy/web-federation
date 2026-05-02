@@ -1,7 +1,6 @@
 *.swp
 other-sites
 outfile.tmp
-.env
 backups/*
 !backups/.gitkeep
 node_modules/

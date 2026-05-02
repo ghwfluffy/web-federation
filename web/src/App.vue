@@ -72,7 +72,6 @@ const codeForm = reactive({
   expiresAt: "",
 });
 
-const statusTone = computed(() => (statusStore.status?.status === "ok" ? "success" : "warn"));
 const displayName = computed(() => currentUser.value?.display_name || currentUser.value?.username || "");
 
 function showError(error: unknown, fallback: string): void {
@@ -331,12 +330,13 @@ onMounted(async () => {
 <template>
   <main class="app-shell">
     <Toast position="top-right" />
+
     <section v-if="currentUser" class="app-header">
       <div class="brand-lockup">
         <img v-if="currentUser" :src="brandSmallUrl" class="brand-mark-small" alt="" />
         <div>
-          <p class="eyebrow">Central identity</p>
-          <h1>Auth Directory</h1>
+          <!-- p class="eyebrow">Ghw Central</p -->
+          <h1>Ghw Central</h1>
         </div>
       </div>
       <div class="header-actions">
@@ -529,25 +529,5 @@ onMounted(async () => {
         </TabPanel>
       </TabPanels>
     </Tabs>
-
-    <section class="status-panel">
-      <div class="status-message" :class="`status-message-${statusTone}`">
-        <span v-if="statusStore.status">
-          API {{ statusStore.status.status }}; database {{ statusStore.status.database }}.
-        </span>
-        <span v-else-if="statusStore.error">{{ statusStore.error }}</span>
-        <span v-else>Loading status.</span>
-      </div>
-      <dl>
-        <div>
-          <dt>Configured app base</dt>
-          <dd>{{ appBasePath }}</dd>
-        </div>
-        <div>
-          <dt>Configured API base</dt>
-          <dd>{{ apiBaseUrl }}</dd>
-        </div>
-      </dl>
-    </section>
   </main>
 </template>

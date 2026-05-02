@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     app_version: str = __version__
     app_base_path: str = "/auth"
     api_v1_prefix: str = "/api/v1"
-    public_url: str = "http://localhost:8090"
+    public_url: str = "http://localhost:8190"
     postgres_user: str = "ghw"
     postgres_password: str = "supersecure"
     postgres_db: str = "auth_site"
@@ -50,10 +50,10 @@ class Settings(BaseSettings):
     backup_dir: str = str(ROOT_DIR / "backups")
     backup_script_path: str = str(ROOT_DIR / "db" / "create_backup.sh")
     cors_origins: list[str] = [
-        "http://127.0.0.1:8091",
-        "http://localhost:8091",
-        "http://127.0.0.1:8090",
-        "http://localhost:8090",
+        "http://127.0.0.1:8191",
+        "http://localhost:8191",
+        "http://127.0.0.1:8190",
+        "http://localhost:8190",
         "http://127.0.0.1:5173",
         "http://localhost:5173",
     ]

@@ -13,5 +13,8 @@ RUN npm install
 COPY web/ ./
 RUN npm run build
 
+FROM node:22-slim AS dev
+WORKDIR /workspace/web
+
 FROM nginx:1.29-alpine
 COPY --from=build /workspace/web/dist /usr/share/nginx/html

@@ -36,9 +36,9 @@ docker compose up --build
 
 With default settings:
 
-- App: `http://localhost:8090/auth`
-- API status: `http://localhost:8090/auth/api/v1/status`
-- Vite dev server: `http://localhost:8091/auth`
+- App: `http://localhost:8190/auth`
+- API status: `http://localhost:8190/auth/api/v1/status`
+- Vite dev server: `http://localhost:8191/auth`
 
 ## Documentation
 
