@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
     plugins: [vue()],
     server: {
       host: "0.0.0.0",
-      port: 8081,
+      port: 8091,
       proxy: {
         [apiBaseUrl]: {
           target: proxyTarget,

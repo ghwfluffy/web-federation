@@ -12,7 +12,7 @@ With the defaults:
 
 - Frontend through Nginx: `http://localhost:8090/auth`
 - API status through Nginx: `http://localhost:8090/auth/api/v1/status`
-- Vite dev server: `http://localhost:8081/auth`
+- Vite dev server: `http://localhost:8091/auth`
 
 ## Validation
 
