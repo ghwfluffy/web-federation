@@ -518,7 +518,7 @@ onMounted(async () => {
     </Tabs>
 
     <section class="status-panel">
-      <div class="status-message" :class="`status-message-`">
+      <div class="status-message" :class="`status-message-${statusTone}`">
         <span v-if="statusStore.status">
           API {{ statusStore.status.status }}; database {{ statusStore.status.database }}.
         </span>
