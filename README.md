@@ -1,8 +1,8 @@
 # Auth Site
 
-Auth Site is the central identity and directory application for a family of web apps.
-
-It owns account sign-in, registration, password changes, profile details, profile images, user administration, registration codes, OAuth/OIDC identity, and the authenticated directory that links users to connected apps.
+| | |
+|---|---|
+| [<img src="./web/public/auth-large.png" width="300"/>](./web/public/auth-large.png) | **Auth Site** is the central identity and directory application for a family of web apps.<br><br>It owns account sign-in, registration, password changes, profile details, profile images, user administration, registration codes, OAuth/OIDC identity, and the authenticated directory that links users to connected apps. |
 
 ## What It Provides
 
