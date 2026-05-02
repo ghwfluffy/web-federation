@@ -17,6 +17,7 @@ import {
   deleteRequest,
   fetchBootstrapStatus,
   fetchMe,
+  fetchWelcomePhrase,
   patchJson,
   postJson,
   requestJson,
@@ -39,6 +40,7 @@ const directorySites = ref<DirectorySiteSummary[]>([]);
 const bootstrapRequired = ref(false);
 const authTab = ref("login");
 const loading = ref(false);
+const authWelcomePhrase = ref("Welcome back, Ghw — the console missed you.");
 const appBasePath = import.meta.env.VITE_APP_BASE_PATH ?? "/auth";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/auth/api/v1";
 
@@ -53,109 +55,6 @@ function normalizeAssetBasePath(value: string): string {
 const assetBasePath = normalizeAssetBasePath(appBasePath);
 const brandLargeUrl = `${assetBasePath}/auth-large.png`;
 const brandSmallUrl = `${assetBasePath}/auth-small.png`;
-const authWelcomePhrases = [
-  "Welcome back, Ghw — the console missed you.",
-  "Ghw detected. Mischief level: authorized.",
-  "Welcome, Ghw — the pixels are behaving… for now.",
-  "Hey Ghw, your digital kingdom awaits.",
-  "Welcome back, Ghw — let’s bend some bytes.",
-  "Ghw authenticated. Fun mode enabled.",
-  "Good to see you, Ghw — vibes initialized.",
-  "Ah, Ghw returns. The servers rejoice.",
-  "Welcome, Ghw — time to make the internet nervous.",
-  "Hey Ghw, the dashboard has been expecting you.",
-  "Welcome back, Ghw — the code survived your absence.",
-  "Ghw online. Chaos engine warmed up.",
-  "Good to see you, Ghw — let’s ship something shiny.",
-  "Welcome, Ghw — the machine spirit approves.",
-  "Hey Ghw, login complete. Adventure pending.",
-  "Welcome back, Ghw — your bytes are right where you left them.",
-  "Ghw has entered the chat.",
-  "Good to see you, Ghw — productivity may occur.",
-  "Welcome, Ghw — the terminal bows politely.",
-  "Ghw logged in. Reality patching enabled.",
-  "Welcome back, Ghw — the bugs look nervous.",
-  "Hey Ghw, your command center is ready.",
-  "Welcome, Ghw — all systems are mildly excited.",
-  "Ghw verified. Shenanigans permitted.",
-  "Good to see you, Ghw — let’s poke the system.",
-  "Welcome back, Ghw — the internet missed your fingerprints.",
-  "Ghw present. Syntax trembles.",
-  "Hey Ghw, ready to cause elegant problems?",
-  "Welcome, Ghw — the stack is yours.",
-  "Ghw login successful. Coffee recommended.",
-  "Welcome back, Ghw — the bits are buzzing.",
-  "Good to see you, Ghw — let’s make the dashboard jealous.",
-  "Ghw detected. Deploy responsibly.",
-  "Welcome, Ghw — your portal is open.",
-  "Hey Ghw, the matrix saved your seat.",
-  "Welcome back, Ghw — the bugs filed complaints.",
-  "Ghw online. Button pressing authorized.",
-  "Good to see you, Ghw — let’s turn ideas into commits.",
-  "Welcome, Ghw — the servers are pretending to be calm.",
-  "Ghw authenticated. Byte wizardry unlocked.",
-  "Welcome back, Ghw — your digital lair awaits.",
-  "Hey Ghw, ready to make something unnecessarily cool?",
-  "Welcome, Ghw — the login gods approve.",
-  "Ghw has arrived. Logs are watching.",
-  "Good to see you, Ghw — let the tinkering begin.",
-  "Welcome back, Ghw — the dashboard just got smarter.",
-  "Ghw confirmed. Hack the planet gently.",
-  "Welcome, Ghw — the packets salute you.",
-  "Hey Ghw, your workspace is warmed up.",
-  "Ghw online. The fun can now compile.",
-  "Welcome back, Ghw — the system kept your chair warm.",
-  "Good to see you, Ghw — let’s make some bits dance.",
-  "Welcome, Ghw — the browser is trying its best.",
-  "Ghw verified. Enter at your own genius.",
-  "Hey Ghw, your secret portal is open.",
-  "Welcome back, Ghw — the logs whispered your name.",
-  "Ghw detected. Proceed with cleverness.",
-  "Good to see you, Ghw — may your bugs be obvious.",
-  "Welcome, Ghw — the app is happier now.",
-  "Ghw logged in. Curiosity authorized.",
-  "Welcome back, Ghw — the cache remembers you.",
-  "Hey Ghw, your playground is ready.",
-  "Welcome, Ghw — time to make the machines useful.",
-  "Ghw online. Permission to tinker granted.",
-  "Good to see you, Ghw — let’s make this thing purr.",
-  "Welcome back, Ghw — your corner of the web is glowing.",
-  "Ghw authenticated. Reality debugger attached.",
-  "Hey Ghw, the portal missed your clicks.",
-  "Welcome, Ghw — the code gremlins are hiding.",
-  "Ghw present. Elegance loading.",
-  "Welcome back, Ghw — the stack awaits your wisdom.",
-  "Good to see you, Ghw — let’s make electrons do tricks.",
-  "Welcome, Ghw — this login screen believes in you.",
-  "Ghw detected. Clever mode engaged.",
-  "Hey Ghw, the website is officially less lonely.",
-  "Welcome back, Ghw — the UI cleaned up for you.",
-  "Ghw signed in. Let the experiments commence.",
-  "Good to see you, Ghw — the sandbox is open.",
-  "Welcome, Ghw — command accepted, coolness pending.",
-  "Ghw online. The bytes are standing by.",
-  "Welcome back, Ghw — your dashboard missed the drama.",
-  "Hey Ghw, the system is ready for your nonsense.",
-  "Welcome, Ghw — let’s make something suspiciously polished.",
-  "Ghw verified. Keyboard wizard detected.",
-  "Good to see you, Ghw — the portal is pleased.",
-  "Welcome back, Ghw — the cloud waved hello.",
-  "Ghw logged in. May your sessions be stable.",
-  "Hey Ghw, your digital workshop is open.",
-  "Welcome, Ghw — the servers are caffeinated.",
-  "Ghw online. Let’s commit responsibly-ish.",
-  "Welcome back, Ghw — the bits formed a welcome committee.",
-  "Good to see you, Ghw — let’s make the web behave.",
-  "Welcome, Ghw — this is where the magic compiles.",
-  "Ghw detected. The fun has root access.",
-  "Hey Ghw, your personal portal is alive.",
-  "Welcome back, Ghw — the machines missed your judgment.",
-  "Ghw authenticated. Wonder unlocked.",
-  "Good to see you, Ghw — the session has good vibes.",
-  "Welcome, Ghw — let’s turn caffeine into features.",
-  "Ghw online. The adventure starts here.",
-] as const;
-const authWelcomePhrase = authWelcomePhrases[Math.floor(Math.random() * authWelcomePhrases.length)];
 
 const loginForm = reactive({ username: "", password: "" });
 const registerForm = reactive({ username: "", password: "", registrationCode: "" });
@@ -199,6 +98,15 @@ async function restoreSession(): Promise<void> {
     const bootstrapStatus = await fetchBootstrapStatus();
     bootstrapRequired.value = bootstrapStatus.bootstrap_required;
     authTab.value = bootstrapStatus.bootstrap_required ? "bootstrap" : "login";
+  }
+}
+
+async function loadWelcomePhrase(): Promise<void> {
+  try {
+    const response = await fetchWelcomePhrase();
+    authWelcomePhrase.value = response.phrase;
+  } catch {
+    authWelcomePhrase.value = "Welcome back, Ghw — the console missed you.";
   }
 }
 
@@ -415,7 +323,7 @@ async function copyCode(code: RegistrationCodeSummary): Promise<void> {
 }
 
 onMounted(async () => {
-  await Promise.all([statusStore.loadStatus(), restoreSession()]);
+  await Promise.all([statusStore.loadStatus(), restoreSession(), loadWelcomePhrase()]);
   await loadAdminData();
 });
 </script>

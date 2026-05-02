@@ -139,3 +139,7 @@ export function fetchMe(): Promise<SessionPayload> {
 export function fetchBootstrapStatus(): Promise<{ bootstrap_required: boolean }> {
   return requestJson<{ bootstrap_required: boolean }>("/auth/bootstrap-status");
 }
+
+export function fetchWelcomePhrase(): Promise<{ phrase: string }> {
+  return requestJson<{ phrase: string }>("/welcome/phrase");
+}
