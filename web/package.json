@@ -1,0 +1,30 @@
+{
+  "name": "auth-site-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vue-tsc --noEmit && vite build",
+    "dev": "vite",
+    "test": "vitest run",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@primeuix/themes": "1.2.5",
+    "pinia": "3.0.4",
+    "primeicons": "7.0.0",
+    "primevue": "4.5.2",
+    "vue": "3.5.25",
+    "vue-router": "4.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.26",
+    "@vitejs/plugin-vue": "5.2.4",
+    "@vue/test-utils": "2.4.6",
+    "jsdom": "24.1.3",
+    "typescript": "5.9.3",
+    "vite": "5.4.21",
+    "vitest": "2.1.9",
+    "vue-tsc": "3.1.8"
+  }
+}
