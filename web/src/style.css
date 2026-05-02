@@ -39,6 +39,12 @@ select {
   margin-bottom: 20px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .app-header h1 {
   margin: 0;
   font-size: 2rem;
@@ -55,6 +61,66 @@ select {
 
 .workspace-tabs {
   margin-bottom: 20px;
+}
+
+.auth-grid,
+.panel-stack,
+.form-grid,
+.code-list {
+  display: grid;
+  gap: 16px;
+}
+
+.management-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: center;
+}
+
+.check-row,
+.button-row,
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid #d8dee8;
+  padding: 10px;
+  text-align: left;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.code-row p {
+  margin: 4px 0 0;
+}
+
+.avatar-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
 }
 
 .status-panel {
@@ -108,9 +174,21 @@ select {
 
   .app-header {
     align-items: flex-start;
+    flex-direction: column;
   }
 
   .status-panel dl {
     grid-template-columns: 1fr;
+  }
+
+  .management-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .code-row,
+  .row-actions,
+  .button-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
