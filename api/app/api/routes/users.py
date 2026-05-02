@@ -11,6 +11,7 @@ from app.api.routes.auth import get_current_admin_user, get_current_user, serial
 from app.core.config import Settings, get_settings
 from app.core.security import hash_password, verify_password
 from app.db import AuthSession, User, UserProfileImage, get_db
+from app.services.audit import record_audit_event
 from app.services.images import ImageValidationError, render_safe_avatar_png
 
 router = APIRouter(prefix="/users")
@@ -76,6 +77,13 @@ def update_current_profile(
     user.display_name = payload.display_name
     user.timezone = payload.timezone
     user.updated_at = utcnow()
+    record_audit_event(
+        db,
+        event_type="user.profile.update",
+        message="User profile updated.",
+        actor=user,
+        details={"user_id": user.id},
+    )
     db.commit()
     db.refresh(user)
     return admin_user_payload(user, settings)
@@ -100,6 +108,13 @@ def change_password(
         {"revoked_at": utcnow()},
         synchronize_session=False,
     )
+    record_audit_event(
+        db,
+        event_type="user.password.change",
+        message="User password changed.",
+        actor=user,
+        details={"user_id": user.id},
+    )
     db.commit()
     db.refresh(user)
     return admin_user_payload(user, settings)
@@ -119,6 +134,13 @@ async def upload_current_avatar(
     image = UserProfileImage(user_id=user.id, png_bytes=png_bytes, width=width, height=height, sha256=sha256)
     db.add(image)
     user.updated_at = utcnow()
+    record_audit_event(
+        db,
+        event_type="user.avatar.change",
+        message="User avatar changed.",
+        actor=user,
+        details={"user_id": user.id, "image_id": image.id},
+    )
     db.commit()
     db.refresh(user)
     return admin_user_payload(user, settings)
@@ -168,6 +190,13 @@ def admin_create_user(
         password_changed_at=now,
     )
     db.add(user)
+    record_audit_event(
+        db,
+        event_type="admin.user.create",
+        message="Admin created user.",
+        actor=_admin,
+        details={"target_username": user.username},
+    )
     db.commit()
     db.refresh(user)
     return admin_user_payload(user, settings)
@@ -198,6 +227,13 @@ def admin_update_user(
     user.is_admin = payload.is_admin
     user.is_disabled = payload.is_disabled
     user.updated_at = utcnow()
+    record_audit_event(
+        db,
+        event_type="admin.user.update",
+        message="Admin updated user.",
+        actor=_admin,
+        details={"target_user_id": user.id},
+    )
     db.commit()
     db.refresh(user)
     return admin_user_payload(user, settings)
@@ -220,6 +256,13 @@ def admin_reset_password(
     db.query(AuthSession).filter(AuthSession.user_id == user.id, AuthSession.revoked_at.is_(None)).update(
         {"revoked_at": utcnow()},
         synchronize_session=False,
+    )
+    record_audit_event(
+        db,
+        event_type="admin.user.reset_password",
+        message="Admin reset user password.",
+        actor=_admin,
+        details={"target_user_id": user.id},
     )
     db.commit()
     db.refresh(user)
@@ -245,6 +288,13 @@ def admin_delete_user(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Cannot delete the last admin.",
         )
+    record_audit_event(
+        db,
+        event_type="admin.user.delete",
+        message="Admin deleted user.",
+        actor=admin,
+        details={"target_user_id": user.id, "target_username": user.username},
+    )
     db.delete(user)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

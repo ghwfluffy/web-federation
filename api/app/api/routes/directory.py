@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.routes.auth import get_current_admin_user, get_current_user, utcnow
 from app.core.config import Settings, get_settings
 from app.db import SiteDirectoryEntry, User, get_db
+from app.services.audit import record_audit_event
 
 router = APIRouter(prefix="/directory/sites")
 admin_router = APIRouter(prefix="/admin/directory/sites")
@@ -123,7 +124,7 @@ def admin_list_directory_sites(
 @admin_router.post("", response_model=DirectorySiteSummary, status_code=status.HTTP_201_CREATED)
 def admin_create_directory_site(
     payload: DirectorySiteRequest,
-    _admin: Annotated[User, Depends(get_current_admin_user)],
+    admin: Annotated[User, Depends(get_current_admin_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> DirectorySiteSummary:
     if db.scalar(select(SiteDirectoryEntry.id).where(SiteDirectoryEntry.slug == payload.slug)) is not None:
@@ -131,6 +132,13 @@ def admin_create_directory_site(
     now = utcnow()
     site = SiteDirectoryEntry(**payload.model_dump(), created_at=now, updated_at=now)
     db.add(site)
+    record_audit_event(
+        db,
+        event_type="directory.site.create",
+        message="Directory site created.",
+        actor=admin,
+        details={"slug": site.slug},
+    )
     db.commit()
     db.refresh(site)
     return serialize_site(site)
@@ -140,7 +148,7 @@ def admin_create_directory_site(
 def admin_update_directory_site(
     site_id: str,
     payload: DirectorySiteRequest,
-    _admin: Annotated[User, Depends(get_current_admin_user)],
+    admin: Annotated[User, Depends(get_current_admin_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> DirectorySiteSummary:
     site = db.get(SiteDirectoryEntry, site_id)
@@ -149,6 +157,13 @@ def admin_update_directory_site(
     for key, value in payload.model_dump().items():
         setattr(site, key, value)
     site.updated_at = utcnow()
+    record_audit_event(
+        db,
+        event_type="directory.site.update",
+        message="Directory site updated.",
+        actor=admin,
+        details={"site_id": site.id, "slug": site.slug},
+    )
     db.commit()
     db.refresh(site)
     return serialize_site(site)
@@ -157,12 +172,19 @@ def admin_update_directory_site(
 @admin_router.delete("/{site_id}", status_code=status.HTTP_204_NO_CONTENT)
 def admin_delete_directory_site(
     site_id: str,
-    _admin: Annotated[User, Depends(get_current_admin_user)],
+    admin: Annotated[User, Depends(get_current_admin_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> Response:
     site = db.get(SiteDirectoryEntry, site_id)
     if site is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Directory site not found.")
+    record_audit_event(
+        db,
+        event_type="directory.site.delete",
+        message="Directory site deleted.",
+        actor=admin,
+        details={"site_id": site.id, "slug": site.slug},
+    )
     db.delete(site)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

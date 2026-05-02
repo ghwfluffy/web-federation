@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.api.routes.auth import get_current_admin_user, utcnow
 from app.core.security import generate_token, hash_token
 from app.db import RegistrationCode, User, get_db
+from app.services.audit import record_audit_event
 
 router = APIRouter(prefix="/registration-codes")
 
@@ -81,6 +82,13 @@ def create_registration_code(
         updated_at=now,
     )
     db.add(code)
+    record_audit_event(
+        db,
+        event_type="registration_code.create",
+        message="Registration code created.",
+        actor=admin,
+        details={"description": code.description},
+    )
     db.commit()
     db.refresh(code)
     return serialize_registration_code(code, raw_code=raw_code)
@@ -99,6 +107,13 @@ def update_registration_code(
     code.description = payload.description
     code.expires_at = payload.expires_at
     code.updated_at = utcnow()
+    record_audit_event(
+        db,
+        event_type="registration_code.update",
+        message="Registration code updated.",
+        actor=_admin,
+        details={"registration_code_id": code.id},
+    )
     db.commit()
     db.refresh(code)
     return serialize_registration_code(code)
@@ -115,6 +130,13 @@ def revoke_registration_code(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration code not found.")
     code.revoked_at = utcnow()
     code.updated_at = utcnow()
+    record_audit_event(
+        db,
+        event_type="registration_code.revoke",
+        message="Registration code revoked.",
+        actor=_admin,
+        details={"registration_code_id": code.id},
+    )
     db.commit()
     db.refresh(code)
     return serialize_registration_code(code)
@@ -129,6 +151,13 @@ def delete_registration_code(
     code = db.get(RegistrationCode, code_id)
     if code is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration code not found.")
+    record_audit_event(
+        db,
+        event_type="registration_code.delete",
+        message="Registration code deleted.",
+        actor=_admin,
+        details={"registration_code_id": code.id},
+    )
     db.delete(code)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

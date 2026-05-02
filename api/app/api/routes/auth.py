@@ -18,6 +18,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db import AuthSession, RegistrationCode, User, get_db
+from app.services.audit import record_audit_event
 
 router = APIRouter(prefix="/auth")
 
@@ -192,6 +193,13 @@ def bootstrap(
     db.add(user)
     db.flush()
     raw_token = create_session(db, user=user, settings=settings, request=request)
+    record_audit_event(
+        db,
+        event_type="auth.bootstrap",
+        message="Bootstrap admin created.",
+        actor=user,
+        details={"username": user.username},
+    )
     db.commit()
     db.refresh(user)
     set_session_cookie(response, settings=settings, raw_token=raw_token)
@@ -212,6 +220,13 @@ def login(
     if user.is_disabled:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is disabled.")
     raw_token = create_session(db, user=user, settings=settings, request=request)
+    record_audit_event(
+        db,
+        event_type="auth.login",
+        message="User logged in.",
+        actor=user,
+        details={"username": user.username},
+    )
     db.commit()
     db.refresh(user)
     set_session_cookie(response, settings=settings, raw_token=raw_token)
@@ -250,6 +265,13 @@ def register(
     db.add(user)
     db.flush()
     raw_token = create_session(db, user=user, settings=settings, request=request)
+    record_audit_event(
+        db,
+        event_type="auth.register",
+        message="User registered.",
+        actor=user,
+        details={"username": user.username, "registration_code_id": code.id},
+    )
     db.commit()
     db.refresh(user)
     set_session_cookie(response, settings=settings, raw_token=raw_token)
@@ -279,6 +301,13 @@ def logout(
             )
             if auth_session is not None and auth_session.revoked_at is None:
                 auth_session.revoked_at = utcnow()
+                record_audit_event(
+                    db,
+                    event_type="auth.logout",
+                    message="User logged out.",
+                    actor=auth_session.user,
+                    details={"session_id": auth_session.id},
+                )
                 db.commit()
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     clear_session_cookie(response, settings=settings)

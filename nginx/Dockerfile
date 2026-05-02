@@ -16,4 +16,5 @@ RUN npm run build
 FROM nginx:1.29-alpine
 
 COPY --from=build /workspace/web/dist /usr/share/nginx/html
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template

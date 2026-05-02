@@ -18,6 +18,7 @@ from app.api.routes.auth import as_aware_utc, get_current_user, serialize_user, 
 from app.core.config import Settings, get_settings
 from app.core.security import generate_token, hash_token, sign_value
 from app.db import OAuthAuthorizationCode, OAuthClient, OAuthRefreshToken, User, get_db
+from app.services.audit import record_audit_event
 
 metadata_router = APIRouter()
 router = APIRouter(prefix="/oauth")
@@ -130,6 +131,13 @@ def token_response(
             expires_at=now + timedelta(days=REFRESH_TOKEN_DAYS),
         )
     )
+    record_audit_event(
+        db,
+        event_type="oauth.token.issue",
+        message="OAuth tokens issued.",
+        actor=user,
+        details={"client_id": client.client_id, "scope": scope},
+    )
     db.commit()
     return {
         "access_token": sign_jwt(access_payload, settings),
@@ -193,6 +201,13 @@ def authorize(
             expires_at=now + timedelta(seconds=AUTHORIZATION_CODE_SECONDS),
         )
     )
+    record_audit_event(
+        db,
+        event_type="oauth.grant",
+        message="OAuth authorization code granted.",
+        actor=current_user,
+        details={"client_id": client.client_id, "redirect_uri": redirect_uri, "scope": scope},
+    )
     db.commit()
     query = {"code": raw_code}
     if state is not None:
@@ -253,6 +268,13 @@ def token(
         if user is None or user.is_disabled:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user.")
         token_record.revoked_at = now
+        record_audit_event(
+            db,
+            event_type="oauth.refresh.use",
+            message="OAuth refresh token used.",
+            actor=user,
+            details={"client_id": client.client_id, "refresh_token_id": token_record.id},
+        )
         response = token_response(
             db=db,
             user=user,
@@ -302,6 +324,12 @@ def revoke(
     )
     if token_record is not None and token_record.revoked_at is None:
         token_record.revoked_at = utcnow()
+        record_audit_event(
+            db,
+            event_type="oauth.token.revoke",
+            message="OAuth refresh token revoked.",
+            details={"refresh_token_id": token_record.id, "client_id": token_record.client_id},
+        )
         db.commit()
 
 

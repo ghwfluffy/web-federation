@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     auth_lockout_minutes: int = 15
     goals_base_url: str = "/goals"
     money_planner_base_url: str = "/money-planner"
+    backup_dir: str = str(ROOT_DIR / "backups")
+    backup_script_path: str = str(ROOT_DIR / "db" / "create_backup.sh")
     cors_origins: list[str] = [
         "http://127.0.0.1:8081",
         "http://localhost:8081",
@@ -80,6 +82,10 @@ class Settings(BaseSettings):
     def session_cookie_secure(self) -> bool:
         return self.app_env not in {"development", "test"}
 
+    @property
+    def is_production(self) -> bool:
+        return self.app_env == "production"
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -91,4 +97,15 @@ def get_settings() -> Settings:
         settings.session_key_source = "default"
     else:
         settings.session_key_source = "env"
+    if settings.is_production:
+        unsafe_values = []
+        if settings.session_key_source in {"default", "generated"}:
+            unsafe_values.append("SESSION_KEY")
+        if settings.postgres_password == "supersecure":
+            unsafe_values.append("POSTGRES_PASSWORD")
+        if "localhost" in settings.public_url or "127.0.0.1" in settings.public_url:
+            unsafe_values.append("PUBLIC_URL")
+        if unsafe_values:
+            joined_values = ", ".join(unsafe_values)
+            raise RuntimeError(f"Unsafe production configuration values: {joined_values}")
     return settings
