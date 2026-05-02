@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     session_duration_minutes: int = 60
     auth_max_failed_attempts: int = 5
     auth_lockout_minutes: int = 15
+    goals_base_url: str = "/goals"
+    money_planner_base_url: str = "/money-planner"
     cors_origins: list[str] = [
         "http://127.0.0.1:8081",
         "http://localhost:8081",

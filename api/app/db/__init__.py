@@ -5,6 +5,7 @@ from app.db.models import (
     OAuthClient,
     OAuthRefreshToken,
     RegistrationCode,
+    SiteDirectoryEntry,
     User,
     UserProfileImage,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "OAuthRefreshToken",
     "RegistrationCode",
     "SessionLocal",
+    "SiteDirectoryEntry",
     "User",
     "UserProfileImage",
     "check_database",

@@ -38,6 +38,22 @@ export interface RegistrationCodeListPayload {
   registration_codes: RegistrationCodeSummary[];
 }
 
+export interface DirectorySiteSummary {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  base_url: string;
+  icon: string | null;
+  required_role: string | null;
+  is_enabled: boolean;
+  display_order: number;
+}
+
+export interface DirectorySiteListPayload {
+  sites: DirectorySiteSummary[];
+}
+
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/auth/api/v1";
 export const apiBaseUrl = configuredApiBaseUrl.replace(/\/+$/, "");
 

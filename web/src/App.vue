@@ -21,6 +21,8 @@ import {
   requestJson,
   uploadAvatar,
   type RegistrationCodeSummary,
+  type DirectorySiteListPayload,
+  type DirectorySiteSummary,
   type SessionPayload,
   type UserListPayload,
   type UserSummary,
@@ -31,6 +33,7 @@ const statusStore = useStatusStore();
 const currentUser = ref<UserSummary | null>(null);
 const users = ref<UserSummary[]>([]);
 const registrationCodes = ref<RegistrationCodeSummary[]>([]);
+const directorySites = ref<DirectorySiteSummary[]>([]);
 const bootstrapRequired = ref(false);
 const authTab = ref("login");
 const errorMessage = ref<string | null>(null);
@@ -71,6 +74,7 @@ async function restoreSession(): Promise<void> {
   try {
     const response = await fetchMe();
     setCurrentUser(response.user);
+    await loadDirectory();
   } catch {
     currentUser.value = null;
     const bootstrapStatus = await fetchBootstrapStatus();
@@ -131,6 +135,15 @@ async function loadAdminData(): Promise<void> {
   ]);
   users.value = userResponse.users;
   registrationCodes.value = codeResponse.registration_codes;
+}
+
+async function loadDirectory(): Promise<void> {
+  if (!currentUser.value) {
+    directorySites.value = [];
+    return;
+  }
+  const response = await requestJson<DirectorySiteListPayload>("/directory/sites");
+  directorySites.value = response.sites;
 }
 
 async function saveProfile(): Promise<void> {
@@ -320,7 +333,15 @@ onMounted(async () => {
           <Card>
             <template #title>Directory</template>
             <template #content>
-              <p>Connected site launch links will be added in the directory phase.</p>
+              <div class="site-grid">
+                <a v-for="site in directorySites" :key="site.id" class="site-link" :href="site.base_url">
+                  <i v-if="site.icon" :class="site.icon" aria-hidden="true"></i>
+                  <span>
+                    <strong>{{ site.name }}</strong>
+                    <small>{{ site.description }}</small>
+                  </span>
+                </a>
+              </div>
             </template>
           </Card>
         </TabPanel>
