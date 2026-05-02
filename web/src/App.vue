@@ -3,13 +3,14 @@ import Button from "primevue/button";
 import Card from "primevue/card";
 import Checkbox from "primevue/checkbox";
 import InputText from "primevue/inputtext";
-import Message from "primevue/message";
 import Password from "primevue/password";
 import Tab from "primevue/tab";
 import TabList from "primevue/tablist";
 import TabPanel from "primevue/tabpanel";
 import TabPanels from "primevue/tabpanels";
 import Tabs from "primevue/tabs";
+import Toast from "primevue/toast";
+import { useToast } from "primevue/usetoast";
 import { computed, onMounted, reactive, ref } from "vue";
 
 import {
@@ -30,14 +31,13 @@ import {
 import { useStatusStore } from "./stores/status";
 
 const statusStore = useStatusStore();
+const toast = useToast();
 const currentUser = ref<UserSummary | null>(null);
 const users = ref<UserSummary[]>([]);
 const registrationCodes = ref<RegistrationCodeSummary[]>([]);
 const directorySites = ref<DirectorySiteSummary[]>([]);
 const bootstrapRequired = ref(false);
 const authTab = ref("login");
-const errorMessage = ref<string | null>(null);
-const successMessage = ref<string | null>(null);
 const loading = ref(false);
 const appBasePath = import.meta.env.VITE_APP_BASE_PATH ?? "/auth";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/auth/api/v1";
@@ -74,12 +74,16 @@ const statusTone = computed(() => (statusStore.status?.status === "ok" ? "succes
 const displayName = computed(() => currentUser.value?.display_name || currentUser.value?.username || "");
 
 function showError(error: unknown, fallback: string): void {
-  errorMessage.value = error instanceof Error ? error.message : fallback;
+  toast.add({
+    severity: "error",
+    summary: "Error",
+    detail: error instanceof Error ? error.message : fallback,
+    life: 5000,
+  });
 }
 
 function showSuccess(message: string): void {
-  successMessage.value = message;
-  errorMessage.value = null;
+  toast.add({ severity: "success", summary: "Success", detail: message, life: 3000 });
 }
 
 async function restoreSession(): Promise<void> {
@@ -103,7 +107,6 @@ function setCurrentUser(user: UserSummary): void {
 
 async function submitAuth(mode: "bootstrap" | "login" | "register"): Promise<void> {
   loading.value = true;
-  errorMessage.value = null;
   try {
     let response: SessionPayload;
     if (mode === "register") {
@@ -316,6 +319,7 @@ onMounted(async () => {
 
 <template>
   <main class="app-shell">
+    <Toast position="top-right" />
     <section class="app-header">
       <div class="brand-lockup">
         <img v-if="currentUser" :src="brandSmallUrl" class="brand-mark-small" alt="" />
@@ -329,9 +333,6 @@ onMounted(async () => {
         <Button v-if="currentUser" label="Sign out" icon="pi pi-sign-out" severity="secondary" @click="logout" />
       </div>
     </section>
-
-    <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
-    <Message v-if="successMessage" severity="success" :closable="false">{{ successMessage }}</Message>
 
     <section v-if="!currentUser" class="auth-grid">
       <div class="auth-brand">
@@ -517,13 +518,13 @@ onMounted(async () => {
     </Tabs>
 
     <section class="status-panel">
-      <Message :severity="statusTone" :closable="false">
+      <div class="status-message" :class="`status-message-`">
         <span v-if="statusStore.status">
           API {{ statusStore.status.status }}; database {{ statusStore.status.database }}.
         </span>
         <span v-else-if="statusStore.error">{{ statusStore.error }}</span>
         <span v-else>Loading status.</span>
-      </Message>
+      </div>
       <dl>
         <div>
           <dt>Configured app base</dt>

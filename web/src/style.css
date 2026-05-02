@@ -191,6 +191,24 @@ td {
   gap: 12px;
 }
 
+.status-message {
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.status-message-success {
+  border-color: #8fd4a3;
+  background: #eefbf2;
+  color: #176534;
+}
+
+.status-message-warn {
+  border-color: #f2cb7d;
+  background: #fff8e8;
+  color: #7a4d00;
+}
+
 .status-panel dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
