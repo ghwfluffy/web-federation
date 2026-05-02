@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.routes.auth import get_current_admin_user, utcnow
-from app.core.security import generate_token, hash_token
+from app.core.security import generate_alphanumeric_code, hash_token
 from app.db import RegistrationCode, User, get_db
 from app.services.audit import record_audit_event
 
@@ -71,7 +71,7 @@ def create_registration_code(
     admin: Annotated[User, Depends(get_current_admin_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> RegistrationCodeSummary:
-    raw_code = generate_token(24)
+    raw_code = generate_alphanumeric_code(16)
     now = utcnow()
     code = RegistrationCode(
         code_hash=hash_token(raw_code),

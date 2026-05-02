@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-from secrets import token_urlsafe
+import string
+from secrets import choice, token_urlsafe
 
 import bcrypt
 
 
 def generate_token(byte_length: int = 32) -> str:
     return token_urlsafe(byte_length)
+
+
+def generate_alphanumeric_code(length: int = 16) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(choice(alphabet) for _ in range(length))
 
 
 def hash_token(token: str) -> str:

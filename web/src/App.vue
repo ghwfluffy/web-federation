@@ -256,13 +256,17 @@ async function deleteUser(user: UserSummary): Promise<void> {
 
 async function createCode(): Promise<void> {
   try {
-    await postJson<RegistrationCodeSummary>("/registration-codes", {
+    const createdCode = await postJson<RegistrationCodeSummary>("/registration-codes", {
       description: codeForm.description || null,
       expires_at: new Date(codeForm.expiresAt).toISOString(),
     });
     codeForm.description = "";
     codeForm.expiresAt = "";
     await loadAdminData();
+    const codeWasLoaded = registrationCodes.value.some((code) => code.id === createdCode.id);
+    registrationCodes.value = codeWasLoaded
+      ? registrationCodes.value.map((code) => (code.id === createdCode.id ? createdCode : code))
+      : [createdCode, ...registrationCodes.value];
     showSuccess("Registration code created.");
   } catch (error) {
     showError(error, "Unable to create registration code.");
