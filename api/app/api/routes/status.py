@@ -3,7 +3,6 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app import __version__
 from app.core.config import get_settings
 from app.db.session import check_database
 
@@ -25,7 +24,7 @@ def get_status() -> StatusResponse:
     return StatusResponse(
         status="ok" if database_status == "ok" else "degraded",
         app_name=settings.app_name,
-        app_version=__version__,
+        app_version=settings.app_version,
         app_base_path=settings.normalized_app_base_path,
         database=database_status,
     )

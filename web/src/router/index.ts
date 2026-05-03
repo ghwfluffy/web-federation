@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 function normalizeAppBasePath(value: string | undefined): string {
-  const trimmed = (value ?? "/auth").trim();
+  const trimmed = (value ?? "/").trim();
   if (trimmed === "" || trimmed === "/") {
     return "/";
   }

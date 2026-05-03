@@ -1,9 +1,16 @@
 #!/bin/sh
 
-trimmed="$(printf '%s' "${APP_BASE_PATH:-/auth}" | sed 's#^/*##; s#/*$##')"
+: "${APP_BASE_PATH:?APP_BASE_PATH is required}"
+: "${API_V1_PREFIX:?API_V1_PREFIX is required}"
+
+trimmed="$(printf '%s' "$APP_BASE_PATH" | sed 's#^/*##; s#/*$##')"
+api_trimmed="$(printf '%s' "$API_V1_PREFIX" | sed 's#^/*##; s#/*$##')"
 
 if [ -z "$trimmed" ]; then
   export APP_BASE_PATH=""
 else
   export APP_BASE_PATH="/$trimmed"
 fi
+
+export API_V1_PREFIX="/$api_trimmed"
+export API_ROOT="/${api_trimmed%%/*}"

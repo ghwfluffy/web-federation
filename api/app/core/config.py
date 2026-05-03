@@ -4,10 +4,10 @@ from functools import lru_cache
 from pathlib import Path
 from secrets import token_urlsafe
 from typing import Literal
+from urllib.parse import urlsplit
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from app import __version__
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 ENV_FILE = ROOT_DIR / ".env"
@@ -28,35 +28,38 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "Central Auth"
-    app_env: str = "development"
-    app_version: str = __version__
-    app_base_path: str = "/auth"
-    api_v1_prefix: str = "/api/v1"
-    public_url: str = "http://localhost:8190"
-    postgres_user: str = "ghw"
-    postgres_password: str = "supersecure"
-    postgres_db: str = "auth_site"
-    postgres_host: str = "localhost"
-    postgres_port: int = 5432
-    session_key: str | None = None
+    app_name: str
+    app_env: str
+    app_version: str
+    app_base_path: str
+    api_v1_prefix: str
+    public_url: str
+    postgres_user: str
+    postgres_password: str
+    postgres_db: str
+    postgres_host: str
+    postgres_port: int
+    session_key: str | None
     session_key_source: Literal["env", "default", "generated"] = "env"
-    session_cookie_name: str = "auth_session"
-    session_duration_minutes: int = 60
-    auth_max_failed_attempts: int = 5
-    auth_lockout_minutes: int = 15
-    goals_base_url: str = "/goals"
-    money_planner_base_url: str = "/money-planner"
-    backup_dir: str = str(ROOT_DIR / "backups")
-    backup_script_path: str = str(ROOT_DIR / "db" / "create_backup.sh")
-    cors_origins: list[str] = [
-        "http://127.0.0.1:8191",
-        "http://localhost:8191",
-        "http://127.0.0.1:8190",
-        "http://localhost:8190",
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-    ]
+    session_cookie_name: str
+    session_duration_minutes: int
+    auth_max_failed_attempts: int
+    auth_lockout_minutes: int
+    goals_base_url: str
+    money_planner_base_url: str
+    backup_dir: str
+    backup_script_path: str
+    cors_origins: list[str]
+
+    @field_validator("public_url")
+    @classmethod
+    def public_url_must_be_origin(cls, value: str) -> str:
+        parsed = urlsplit(value.rstrip("/"))
+        if parsed.path not in {"", "/"}:
+            raise ValueError(
+                "PUBLIC_URL must be only the scheme and host; put path prefixes in APP_BASE_PATH."
+            )
+        return value.rstrip("/")
 
     @property
     def database_url(self) -> str:

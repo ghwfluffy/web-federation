@@ -55,7 +55,7 @@ export interface DirectorySiteListPayload {
 }
 
 function normalizeAppBasePath(value: string | undefined): string {
-  const trimmed = (value ?? "/auth").trim();
+  const trimmed = (value ?? "/").trim();
   if (trimmed === "" || trimmed === "/") {
     return "";
   }
@@ -63,8 +63,12 @@ function normalizeAppBasePath(value: string | undefined): string {
 }
 
 const configuredAppBasePath = normalizeAppBasePath(import.meta.env.VITE_APP_BASE_PATH);
+const configuredApiPrefix = import.meta.env.API_V1_PREFIX;
+if (!configuredApiPrefix) {
+  throw new Error("API_V1_PREFIX is required.");
+}
 const rawConfiguredApiBaseUrl =
-  import.meta.env.VITE_API_BASE_URL?.trim() || `${configuredAppBasePath}/api/v1`;
+  import.meta.env.VITE_API_BASE_URL?.trim() || `${configuredAppBasePath}${configuredApiPrefix}`;
 const configuredApiBaseUrl =
   rawConfiguredApiBaseUrl.startsWith("http") || rawConfiguredApiBaseUrl.startsWith("/")
     ? rawConfiguredApiBaseUrl
