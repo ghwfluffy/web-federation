@@ -213,11 +213,7 @@ def admin_update_user(
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-    if (
-        user.is_admin
-        and not payload.is_admin
-        and admin_count(db) <= 1
-    ):
+    if user.is_admin and not payload.is_admin and admin_count(db) <= 1:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Cannot remove the last admin.",

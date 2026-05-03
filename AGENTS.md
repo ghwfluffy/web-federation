@@ -14,7 +14,7 @@ Keep `/auth` configurable. Do not hard-code it into routes, cookies, OAuth metad
 - Backend tests: `cd api && ./test.sh`
 - Backend lint/type checks: `cd api && ./lint.sh`
 - Frontend tests/type checks: `cd web && ./test.sh`
-- Frontend production build: `cd web && npm run build`
+- Frontend production build: `cd web && ./build.sh`
 - Compose/config changes: `docker compose config`
 
 For doc-only changes, checking the edited Markdown is sufficient. Do not commit generated output such as virtualenvs, `node_modules`, build artifacts, backups, or local `.env` secrets.

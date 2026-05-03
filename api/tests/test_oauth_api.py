@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
@@ -23,7 +24,7 @@ def code_challenge(verifier: str) -> str:
 
 
 def seed_oauth_client(client: TestClient) -> None:
-    SessionLocal = client.app.state.testing_session_local
+    SessionLocal = cast(Any, client.app).state.testing_session_local
     with SessionLocal() as db:
         db.add(
             OAuthClient(

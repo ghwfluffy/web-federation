@@ -10,3 +10,4 @@ See:
 - [Auth And OAuth](./auth-oauth.md)
 - [Data Model](./data-model.md)
 - [Site Directory](./site-directory.md)
+- [Operations And Security Decisions](./operations-security.md)

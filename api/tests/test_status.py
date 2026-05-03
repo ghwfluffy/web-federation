@@ -27,3 +27,18 @@ def test_welcome_phrase_endpoint_returns_phrase(client: TestClient) -> None:
     phrase = response.json()["phrase"]
     assert isinstance(phrase, str)
     assert "Ghw" in phrase
+
+
+def test_api_errors_use_stable_envelope(client: TestClient) -> None:
+    response = client.get("/api/v1/auth/me", headers={"X-Request-ID": "test-request"})
+
+    assert response.status_code == 401
+    assert response.headers["X-Request-ID"] == "test-request"
+    assert response.json() == {
+        "error": {
+            "code": "http_401",
+            "message": "Not authenticated.",
+            "field_errors": [],
+            "request_id": "test-request",
+        }
+    }

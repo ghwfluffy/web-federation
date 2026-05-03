@@ -20,7 +20,7 @@ With the defaults:
 ./scripts/validate.sh
 ```
 
-The frontend portion runs only when `web/node_modules` exists.
+The validation scripts install or refresh backend and frontend dependencies when needed, then run backend linting, backend tests, frontend tests, and the frontend production build.
 
 ## Backups
 

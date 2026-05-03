@@ -63,6 +63,60 @@ interface RequestOptions {
   headers?: HeadersInit;
 }
 
+interface ErrorEnvelope {
+  error?: {
+    code?: string;
+    message?: string;
+    field_errors?: { field: string; message: string }[];
+    request_id?: string;
+  };
+  detail?: unknown;
+}
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+  readonly requestId: string | null;
+  readonly fieldErrors: { field: string; message: string }[];
+
+  constructor(
+    message: string,
+    options: {
+      status: number;
+      code?: string | null;
+      requestId?: string | null;
+      fieldErrors?: { field: string; message: string }[];
+    },
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.status = options.status;
+    this.code = options.code ?? null;
+    this.requestId = options.requestId ?? null;
+    this.fieldErrors = options.fieldErrors ?? [];
+  }
+}
+
+async function parseError(response: Response): Promise<ApiError> {
+  try {
+    const payload = (await response.json()) as ErrorEnvelope;
+    if (typeof payload.error?.message === "string" && payload.error.message.trim() !== "") {
+      return new ApiError(payload.error.message, {
+        status: response.status,
+        code: payload.error.code,
+        requestId: payload.error.request_id,
+        fieldErrors: payload.error.field_errors,
+      });
+    }
+    if (typeof payload.detail === "string" && payload.detail.trim() !== "") {
+      return new ApiError(payload.detail, { status: response.status });
+    }
+  } catch {
+    // Fall through to the generic status message.
+  }
+  return new ApiError(`Request failed with status ${response.status}`, { status: response.status });
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`, {
     credentials: "include",
@@ -75,7 +129,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    throw await parseError(response);
   }
 
   if (response.status === 204) {
@@ -115,7 +169,7 @@ export async function deleteRequest(path: string): Promise<void> {
     method: "DELETE",
   });
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    throw await parseError(response);
   }
 }
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from fastapi.testclient import TestClient
@@ -44,7 +45,7 @@ printf '%s\n' "$BACKUP_DIR/manual.dump"
 
 def test_audit_events_are_written_for_identity_actions(isolated_client: TestClient) -> None:
     bootstrap_admin(isolated_client)
-    SessionLocal = isolated_client.app.state.testing_session_local
+    SessionLocal = cast(Any, isolated_client.app).state.testing_session_local
     with SessionLocal() as db:
         event_types = {row.event_type for row in db.query(AuditEvent).all()}
     assert {"auth.bootstrap"}.issubset(event_types)

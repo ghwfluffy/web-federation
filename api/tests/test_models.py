@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from typing import Protocol, cast
+
+from sqlalchemy import Table
+
 from app.db.models import (
     AuthSession,
     OAuthAuthorizationCode,
@@ -11,8 +15,13 @@ from app.db.models import (
 )
 
 
+class MappedModel(Protocol):
+    __table__: Table
+
+
 def unique_constraint_names(model: type[object]) -> set[str]:
-    return {constraint.name or "" for constraint in model.__table__.constraints}
+    table = cast(MappedModel, model).__table__
+    return {str(constraint.name) if constraint.name is not None else "" for constraint in table.constraints}
 
 
 def test_core_tables_have_expected_uniqueness_constraints() -> None:

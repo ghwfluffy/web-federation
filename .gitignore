@@ -12,3 +12,4 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 api/.venv-requirements.sha256
+web/.node-deps.sha256

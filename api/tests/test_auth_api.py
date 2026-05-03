@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 from fastapi.testclient import TestClient
 
@@ -16,7 +17,7 @@ def bootstrap_admin(client: TestClient) -> dict[str, object]:
         json={"username": "admin", "password": "supersafepassword"},
     )
     assert response.status_code == 201
-    return response.json()["user"]
+    return cast(dict[str, object], response.json()["user"])
 
 
 def test_bootstrap_login_me_logout_flow(isolated_client: TestClient) -> None:

@@ -1,10 +1,9 @@
 #!/bin/sh
 set -eu
 
-(cd api && ./test.sh)
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-if [ -d web/node_modules ]; then
-  (cd web && npm run typecheck && npm test)
-else
-  printf '%s\n' "Skipping frontend validation because web/node_modules is not installed."
-fi
+"${ROOT_DIR}/api/lint.sh"
+"${ROOT_DIR}/api/test.sh"
+"${ROOT_DIR}/web/test.sh"
+"${ROOT_DIR}/web/build.sh"
