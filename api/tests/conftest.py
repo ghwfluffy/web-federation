@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import Settings, get_settings
 from app.db import get_db
 from app.db.models import Base
 from app.main import app
@@ -38,6 +39,7 @@ def isolated_client() -> Generator[TestClient]:
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_settings] = lambda: Settings(app_env="test", app_base_path="")
     try:
         with TestClient(app) as test_client:
             yield test_client

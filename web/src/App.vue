@@ -42,7 +42,6 @@ const authTab = ref("login");
 const loading = ref(false);
 const authWelcomePhrase = ref("Welcome back, Ghw — the console missed you.");
 const appBasePath = import.meta.env.VITE_APP_BASE_PATH ?? "/auth";
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/auth/api/v1";
 
 function normalizeAssetBasePath(value: string): string {
   const trimmed = value.trim();

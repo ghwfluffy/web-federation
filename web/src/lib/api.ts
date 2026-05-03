@@ -54,7 +54,21 @@ export interface DirectorySiteListPayload {
   sites: DirectorySiteSummary[];
 }
 
-const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/auth/api/v1";
+function normalizeAppBasePath(value: string | undefined): string {
+  const trimmed = (value ?? "/auth").trim();
+  if (trimmed === "" || trimmed === "/") {
+    return "";
+  }
+  return `/${trimmed.replace(/^\/+|\/+$/g, "")}`;
+}
+
+const configuredAppBasePath = normalizeAppBasePath(import.meta.env.VITE_APP_BASE_PATH);
+const rawConfiguredApiBaseUrl =
+  import.meta.env.VITE_API_BASE_URL?.trim() || `${configuredAppBasePath}/api/v1`;
+const configuredApiBaseUrl =
+  rawConfiguredApiBaseUrl.startsWith("http") || rawConfiguredApiBaseUrl.startsWith("/")
+    ? rawConfiguredApiBaseUrl
+    : `/${rawConfiguredApiBaseUrl}`;
 export const apiBaseUrl = configuredApiBaseUrl.replace(/\/+$/, "");
 
 interface RequestOptions {

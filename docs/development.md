@@ -2,7 +2,7 @@
 
 ## Local Defaults
 
-Copy `.env.example` to `.env` and adjust values as needed. The default external base path is `/auth`.
+Edit `.env` and adjust values as needed. The default external base path is `/auth`.
 
 ```sh
 docker compose up --build
@@ -38,4 +38,4 @@ docker compose up -d
 
 ## Production Checks
 
-`APP_ENV=production` fails startup when `SESSION_KEY`, `POSTGRES_PASSWORD`, or `PUBLIC_URL` still use local/default values. Use an explicit `SESSION_COOKIE_NAME` and leave `APP_BASE_PATH`, `VITE_APP_BASE_PATH`, and `VITE_API_BASE_URL` aligned.
+`APP_ENV=production` fails startup when `SESSION_KEY`, `POSTGRES_PASSWORD`, or `PUBLIC_URL` still use local/default values. Keep `PUBLIC_URL` to the scheme and host only, put the ingress path in `APP_BASE_PATH`, and leave `VITE_APP_BASE_PATH` and `VITE_API_BASE_URL` blank unless you intentionally need frontend-specific overrides.

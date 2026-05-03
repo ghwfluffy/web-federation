@@ -11,12 +11,16 @@ function normalizeBasePath(value) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const appBasePath = normalizeBasePath(env.VITE_APP_BASE_PATH);
+  const appBasePath = normalizeBasePath(env.VITE_APP_BASE_PATH || env.APP_BASE_PATH);
   const apiBaseUrl = env.VITE_API_BASE_URL || `${appBasePath.replace(/\/$/, "")}/api/v1`;
   const proxyTarget = env.VITE_API_PROXY_TARGET || "http://localhost:8000";
 
   return {
     base: appBasePath,
+    define: {
+      "import.meta.env.VITE_APP_BASE_PATH": JSON.stringify(appBasePath.replace(/\/$/, "") || "/"),
+      "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBaseUrl),
+    },
     plugins: [vue()],
     server: {
       host: "0.0.0.0",

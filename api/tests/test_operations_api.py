@@ -13,7 +13,9 @@ from tests.test_auth_api import bootstrap_admin
 
 
 def override_settings(settings: Settings) -> None:
-    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_settings] = lambda: settings.model_copy(
+        update={"app_env": "test", "app_base_path": ""}
+    )
 
 
 def test_admin_can_list_and_create_backups(isolated_client: TestClient, tmp_path: Path) -> None:

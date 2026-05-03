@@ -28,7 +28,7 @@ The default public base path is `/auth`, but it is configuration, not a hard-cod
 
 ## Local Development
 
-Copy `.env.example` to `.env`, adjust values if needed, then run:
+Edit `.env`, adjust values if needed, then run:
 
 ```sh
 docker compose up --build

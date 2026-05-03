@@ -1,0 +1,9 @@
+#!/bin/sh
+
+trimmed="$(printf '%s' "${APP_BASE_PATH:-/auth}" | sed 's#^/*##; s#/*$##')"
+
+if [ -z "$trimmed" ]; then
+  export APP_BASE_PATH=""
+else
+  export APP_BASE_PATH="/$trimmed"
+fi

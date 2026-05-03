@@ -3,6 +3,12 @@ set -eu
 
 cd "$(dirname "$0")"
 
+if [ -f ../.env ]; then
+  set -a
+  . ../.env
+  set +a
+fi
+
 DIGEST_SOURCE="package-lock.json"
 if [ ! -f "${DIGEST_SOURCE}" ]; then
   DIGEST_SOURCE="package.json"
