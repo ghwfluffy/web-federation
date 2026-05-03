@@ -48,6 +48,11 @@ services:
       context: .
       dockerfile: web/Dockerfile
       target: dev
+      args:
+        VITE_APP_BASE_PATH: ${VITE_APP_BASE_PATH:-${APP_BASE_PATH:?APP_BASE_PATH is required in .env}}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        API_V1_PREFIX: ${API_V1_PREFIX:?API_V1_PREFIX is required in .env}
+        VITE_API_PROXY_TARGET: ${VITE_API_PROXY_TARGET:?VITE_API_PROXY_TARGET is required in .env}
     restart: unless-stopped
     env_file:
       - .env
@@ -70,6 +75,8 @@ services:
       args:
         VITE_APP_BASE_PATH: ${VITE_APP_BASE_PATH:-${APP_BASE_PATH:?APP_BASE_PATH is required in .env}}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        API_V1_PREFIX: ${API_V1_PREFIX:?API_V1_PREFIX is required in .env}
+        VITE_API_PROXY_TARGET: ${VITE_API_PROXY_TARGET:?VITE_API_PROXY_TARGET is required in .env}
     restart: unless-stopped
     env_file:
       - .env
