@@ -13,3 +13,4 @@ __pycache__/
 .mypy_cache/
 api/.venv-requirements.sha256
 web/.node-deps.sha256
+publish.sh

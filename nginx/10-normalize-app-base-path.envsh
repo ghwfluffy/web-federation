@@ -7,7 +7,7 @@ trimmed="$(printf '%s' "$APP_BASE_PATH" | sed 's#^/*##; s#/*$##')"
 api_trimmed="$(printf '%s' "$API_V1_PREFIX" | sed 's#^/*##; s#/*$##')"
 
 if [ -z "$trimmed" ]; then
-  export APP_BASE_PATH=""
+  export APP_BASE_PATH="/__base_path_disabled__"
 else
   export APP_BASE_PATH="/$trimmed"
 fi
