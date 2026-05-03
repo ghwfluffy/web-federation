@@ -74,6 +74,22 @@ const codeForm = reactive({
 
 const displayName = computed(() => currentUser.value?.display_name || currentUser.value?.username || "");
 
+function resetAuthForms(): void {
+  loginForm.username = "";
+  loginForm.password = "";
+  registerForm.username = "";
+  registerForm.password = "";
+  registerForm.registrationCode = "";
+}
+
+function clearSessionState(): void {
+  currentUser.value = null;
+  users.value = [];
+  registrationCodes.value = [];
+  directorySites.value = [];
+  resetAuthForms();
+}
+
 function showError(error: unknown, fallback: string): void {
   toast.add({
     severity: "error",
@@ -133,7 +149,8 @@ async function submitAuth(mode: "bootstrap" | "login" | "register"): Promise<voi
       });
     }
     setCurrentUser(response.user);
-    await loadAdminData();
+    resetAuthForms();
+    await Promise.all([loadDirectory(), loadAdminData()]);
     showSuccess("Signed in.");
   } catch (error) {
     showError(error, "Unable to authenticate.");
@@ -144,7 +161,7 @@ async function submitAuth(mode: "bootstrap" | "login" | "register"): Promise<voi
 
 async function logout(): Promise<void> {
   await postJson<Record<string, never>>("/auth/logout", {});
-  currentUser.value = null;
+  clearSessionState();
   await restoreSession();
 }
 
