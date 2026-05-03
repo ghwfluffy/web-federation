@@ -59,7 +59,7 @@ Known risks to revisit before broader production exposure:
 
 ## Backup And Restore Scope
 
-Automatic backups are managed by the `db-backup` Compose service and write dump files plus JSON manifests under `./backups`.
+Automatic backups are managed by the `central_db_backup` Compose service and write dump files plus JSON manifests under `./backups`.
 
 Admins can list backup manifests and trigger on-demand backups through `/api/v1/admin/backups`. The current implementation treats manifest files as the backup index. This is an approved short-term deviation from the reusable default that recommends a `backup_records` table.
 

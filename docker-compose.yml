@@ -1,5 +1,5 @@
 services:
-  db:
+  central_db:
     image: postgres:18
     restart: unless-stopped
     env_file:
@@ -14,7 +14,7 @@ services:
       retries: 10
       start_period: 1s
 
-  api:
+  central_api:
     build:
       context: .
       dockerfile: api/Dockerfile
@@ -27,10 +27,10 @@ services:
       - .:/workspace
       - ./backups:/backups
     depends_on:
-      db:
+      central_db:
         condition: service_healthy
 
-  db-backup:
+  central_db_backup:
     image: postgres:18
     restart: unless-stopped
     env_file:
@@ -40,10 +40,10 @@ services:
       - ./db:/opt/backup:ro
       - ./backups:/backups
     depends_on:
-      db:
+      central_db:
         condition: service_healthy
 
-  web:
+  central_web:
     build:
       context: .
       dockerfile: web/Dockerfile
@@ -64,11 +64,11 @@ services:
     volumes:
       - .:/workspace
     depends_on:
-      - api
+      - central_api
     ports:
       - "${BIND_ADDRESS:?BIND_ADDRESS is required in .env}:8191:8191"
 
-  nginx:
+  central_nginx:
     build:
       context: .
       dockerfile: nginx/Dockerfile
@@ -81,7 +81,7 @@ services:
     env_file:
       - .env
     depends_on:
-      - api
+      - central_api
     ports:
       - "${BIND_ADDRESS:?BIND_ADDRESS is required in .env}:8190:80"
 

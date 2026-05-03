@@ -14,7 +14,7 @@ server {
     location ~ ^(?:${APP_BASE_PATH})?${API_V1_PREFIX}/auth/bootstrap$ {
         limit_req zone=auth_strict burst=5 nodelay;
         rewrite ^(?:${APP_BASE_PATH})?(.+)$ $1 break;
-        proxy_pass http://api:8000;
+        proxy_pass http://central_api:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -24,7 +24,7 @@ server {
     location ~ ^(?:${APP_BASE_PATH})?${API_V1_PREFIX}/auth/login$ {
         limit_req zone=auth_strict burst=5 nodelay;
         rewrite ^(?:${APP_BASE_PATH})?(.+)$ $1 break;
-        proxy_pass http://api:8000;
+        proxy_pass http://central_api:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -34,7 +34,7 @@ server {
     location ~ ^(?:${APP_BASE_PATH})?${API_V1_PREFIX}/auth/register$ {
         limit_req zone=auth_strict burst=5 nodelay;
         rewrite ^(?:${APP_BASE_PATH})?(.+)$ $1 break;
-        proxy_pass http://api:8000;
+        proxy_pass http://central_api:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -44,7 +44,7 @@ server {
     location ~ ^(?:${APP_BASE_PATH})?/oauth/token$ {
         limit_req zone=auth_strict burst=10 nodelay;
         rewrite ^(?:${APP_BASE_PATH})?(.+)$ $1 break;
-        proxy_pass http://api:8000;
+        proxy_pass http://central_api:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -53,7 +53,7 @@ server {
 
     location ~ ^(?:${APP_BASE_PATH})?/.well-known/openid-configuration$ {
         rewrite ^(?:${APP_BASE_PATH})?(.+)$ $1 break;
-        proxy_pass http://api:8000;
+        proxy_pass http://central_api:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -62,7 +62,7 @@ server {
 
     location ~ ^(?:${APP_BASE_PATH})?/oauth/ {
         rewrite ^(?:${APP_BASE_PATH})?(.+)$ $1 break;
-        proxy_pass http://api:8000;
+        proxy_pass http://central_api:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -71,7 +71,7 @@ server {
 
     location ~ ^(?:${APP_BASE_PATH})?${API_V1_PREFIX}/users/[^/]+/avatar$ {
         rewrite ^(?:${APP_BASE_PATH})?(.+)$ $1 break;
-        proxy_pass http://api:8000;
+        proxy_pass http://central_api:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -81,7 +81,7 @@ server {
     location ~ ^(?:${APP_BASE_PATH})?${API_ROOT}/ {
         limit_req zone=api_general burst=240 nodelay;
         rewrite ^(?:${APP_BASE_PATH})?(.+)$ $1 break;
-        proxy_pass http://api:8000;
+        proxy_pass http://central_api:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
