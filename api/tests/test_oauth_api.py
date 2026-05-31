@@ -6,7 +6,9 @@ from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
+from app.core.config import Settings, get_settings
 from app.db.models import OAuthClient
 
 
@@ -88,6 +90,46 @@ def test_oauth_discovery_and_authorization_code_flow(isolated_client: TestClient
     )
     assert userinfo_response.status_code == 200
     assert userinfo_response.json()["preferred_username"] == "admin"
+
+
+def test_authorize_seeds_default_oauth_clients(isolated_client: TestClient) -> None:
+    test_settings = Settings(
+        app_env="test",
+        app_base_path="",
+        goals_base_url="/example-one",
+        money_planner_base_url="/example-two",
+    )
+    cast(Any, isolated_client.app).dependency_overrides[get_settings] = lambda: test_settings
+    bootstrap_admin(isolated_client)
+
+    response = isolated_client.get(
+        "/oauth/authorize",
+        params={
+            "response_type": "code",
+            "client_id": "goals",
+            "redirect_uri": "http://localhost:8190/example-one/api/v1/auth/oauth/callback",
+            "scope": "openid profile",
+            "state": "abc",
+            "code_challenge": code_challenge("verifier"),
+            "code_challenge_method": "S256",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    location = response.headers["location"]
+    assert location.startswith("http://localhost:8190/example-one/api/v1/auth/oauth/callback")
+
+    SessionLocal = cast(Any, isolated_client.app).state.testing_session_local
+    with SessionLocal() as db:
+        clients = {
+            client.client_id: client
+            for client in db.scalars(select(OAuthClient).order_by(OAuthClient.client_id.asc()))
+        }
+    assert clients["goals"].redirect_uris == ["http://localhost:8190/example-one/api/v1/auth/oauth/callback"]
+    assert clients["money-planner"].redirect_uris == [
+        "http://localhost:8190/example-two/api/auth/oauth/callback"
+    ]
 
 
 def test_authorize_redirects_unauthenticated_user_to_auth_ui(isolated_client: TestClient) -> None:

@@ -17,3 +17,13 @@ Consumer apps should keep their own app-scoped cookies after callback. They must
 ## Required Client Data
 
 Each OAuth client needs a unique client id, display name, enabled flag, and exact redirect URI allow-list. Browser clients are public clients and must use PKCE S256.
+
+The auth API lazily creates the default first-party clients when OAuth authorization
+or default directory seeding runs and the client rows do not already exist:
+
+- `goals`, redirecting to `${PUBLIC_URL}${GOALS_BASE_URL}/api/v1/auth/oauth/callback`
+- `money-planner`, redirecting to `${PUBLIC_URL}${MONEY_PLANNER_BASE_URL}/api/auth/oauth/callback`
+
+Existing client rows are not overwritten by the defaults. This lets operators
+customize or disable clients intentionally while still making fresh databases
+usable from configuration alone.

@@ -11,6 +11,7 @@ from app.api.routes.auth import get_current_admin_user, get_current_user, utcnow
 from app.core.config import Settings, get_settings
 from app.db import SiteDirectoryEntry, User, get_db
 from app.services.audit import record_audit_event
+from app.services.defaults import ensure_default_sites
 
 router = APIRouter(prefix="/directory/sites")
 admin_router = APIRouter(prefix="/admin/directory/sites")
@@ -57,37 +58,6 @@ def serialize_site(site: SiteDirectoryEntry) -> DirectorySiteSummary:
     )
 
 
-def ensure_default_sites(db: Session, settings: Settings) -> None:
-    if db.scalar(select(SiteDirectoryEntry.id).limit(1)) is not None:
-        return
-    now = utcnow()
-    db.add_all(
-        [
-            SiteDirectoryEntry(
-                slug="goals",
-                name="Goal Tracker",
-                description="Track goals, metrics, dashboards, and progress widgets.",
-                base_url=settings.goals_base_url,
-                icon="pi pi-flag",
-                display_order=10,
-                created_at=now,
-                updated_at=now,
-            ),
-            SiteDirectoryEntry(
-                slug="money-planner",
-                name="Fluffynomics",
-                description="Track accounts, expenses, contracts, investments, and net worth.",
-                base_url=settings.money_planner_base_url,
-                icon="pi pi-wallet",
-                display_order=20,
-                created_at=now,
-                updated_at=now,
-            ),
-        ]
-    )
-    db.commit()
-
-
 def visible_to_user(site: SiteDirectoryEntry, user: User) -> bool:
     if not site.is_enabled:
         return False
@@ -105,6 +75,7 @@ def list_directory_sites(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> DirectorySiteListResponse:
     ensure_default_sites(db, settings)
+    db.commit()
     sites = list(db.scalars(select(SiteDirectoryEntry).order_by(SiteDirectoryEntry.display_order.asc())))
     visible_sites = [serialize_site(site) for site in sites if visible_to_user(site, user)]
     return DirectorySiteListResponse(sites=visible_sites)
@@ -117,6 +88,7 @@ def admin_list_directory_sites(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> DirectorySiteListResponse:
     ensure_default_sites(db, settings)
+    db.commit()
     sites = list(db.scalars(select(SiteDirectoryEntry).order_by(SiteDirectoryEntry.display_order.asc())))
     return DirectorySiteListResponse(sites=[serialize_site(site) for site in sites])
 

@@ -19,6 +19,7 @@ from app.core.config import Settings, get_settings
 from app.core.security import generate_token, hash_token, sign_value
 from app.db import OAuthAuthorizationCode, OAuthClient, OAuthRefreshToken, User, get_db
 from app.services.audit import record_audit_event
+from app.services.defaults import ensure_default_oauth_clients
 
 metadata_router = APIRouter()
 router = APIRouter(prefix="/oauth")
@@ -80,7 +81,9 @@ def pkce_challenge(verifier: str) -> str:
     return base64url(hashlib.sha256(verifier.encode("ascii")).digest())
 
 
-def get_client(db: Session, client_id: str) -> OAuthClient:
+def get_client(db: Session, settings: Settings, client_id: str) -> OAuthClient:
+    ensure_default_oauth_clients(db, settings)
+    db.commit()
     client = db.scalar(select(OAuthClient).where(OAuthClient.client_id == client_id))
     if client is None or not client.is_enabled:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth client.")
@@ -203,7 +206,7 @@ def authorize(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported response type.")
     if code_challenge_method != "S256":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="PKCE S256 is required.")
-    client = get_client(db, client_id)
+    client = get_client(db, settings, client_id)
     require_redirect_uri(client, redirect_uri)
     raw_code = generate_token()
     now = utcnow()
@@ -245,7 +248,7 @@ def token(
     code_verifier: Annotated[str | None, Form()] = None,
     refresh_token: Annotated[str | None, Form()] = None,
 ) -> dict[str, object]:
-    client = get_client(db, client_id)
+    client = get_client(db, settings, client_id)
     now = utcnow()
     if grant_type == "authorization_code":
         if code is None or redirect_uri is None or code_verifier is None:
