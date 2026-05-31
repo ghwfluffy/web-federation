@@ -6,5 +6,6 @@ Default entries are created lazily when the directory is first loaded and no ent
 
 - Goal Tracker from `GOALS_BASE_URL`, default `/goals`
 - Fluffynomics from `MONEY_PLANNER_BASE_URL`, default `/money-planner`
+- AI Assistant from `AGENT_BASE_URL`, default `/agent`
 
 Directory URLs are launch links only. Identity, password, registration-code, and profile-image management remains in the auth site. Consumer apps should link back to configured auth management URLs when they run in OAuth mode.

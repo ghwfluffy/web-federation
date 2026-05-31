@@ -98,6 +98,7 @@ def test_authorize_seeds_default_oauth_clients(isolated_client: TestClient) -> N
         app_base_path="",
         goals_base_url="/example-one",
         money_planner_base_url="/example-two",
+        agent_base_url="/example-three",
     )
     cast(Any, isolated_client.app).dependency_overrides[get_settings] = lambda: test_settings
     bootstrap_admin(isolated_client)
@@ -129,6 +130,9 @@ def test_authorize_seeds_default_oauth_clients(isolated_client: TestClient) -> N
     assert clients["goals"].redirect_uris == ["http://localhost:8190/example-one/api/v1/auth/oauth/callback"]
     assert clients["money-planner"].redirect_uris == [
         "http://localhost:8190/example-two/api/auth/oauth/callback"
+    ]
+    assert clients["agent"].redirect_uris == [
+        "http://localhost:8190/example-three/api/v1/auth/oauth/callback"
     ]
 
 

@@ -23,6 +23,7 @@ or default directory seeding runs and the client rows do not already exist:
 
 - `goals`, redirecting to `${PUBLIC_URL}${GOALS_BASE_URL}/api/v1/auth/oauth/callback`
 - `money-planner`, redirecting to `${PUBLIC_URL}${MONEY_PLANNER_BASE_URL}/api/auth/oauth/callback`
+- `agent`, redirecting to `${PUBLIC_URL}${AGENT_BASE_URL}/api/v1/auth/oauth/callback`
 
 Existing client rows are not overwritten by the defaults. This lets operators
 customize or disable clients intentionally while still making fresh databases

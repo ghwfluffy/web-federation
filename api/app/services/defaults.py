@@ -46,6 +46,12 @@ def default_oauth_clients(settings: Settings) -> list[DefaultOAuthClient]:
             app_base_url=settings.money_planner_base_url,
             callback_path="/api/auth/oauth/callback",
         ),
+        DefaultOAuthClient(
+            client_id="agent",
+            name="AI Assistant",
+            app_base_url=settings.agent_base_url,
+            callback_path="/api/v1/auth/oauth/callback",
+        ),
     ]
 
 
@@ -107,6 +113,17 @@ def ensure_default_sites(db: Session, settings: Settings) -> None:
                 icon="pi pi-wallet",
                 oauth_client_id=clients_by_client_id["money-planner"].id,
                 display_order=20,
+                created_at=now,
+                updated_at=now,
+            ),
+            SiteDirectoryEntry(
+                slug="agent",
+                name="AI Assistant",
+                description="Run scheduled assistant tasks, mailbox workflows, and audited agent activity.",
+                base_url=settings.agent_base_url,
+                icon="pi pi-sparkles",
+                oauth_client_id=clients_by_client_id["agent"].id,
+                display_order=30,
                 created_at=now,
                 updated_at=now,
             ),
