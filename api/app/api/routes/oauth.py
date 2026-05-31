@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.routes.auth import as_aware_utc, get_current_user, serialize_user, utcnow
+from app.api.routes.auth import as_aware_utc, get_authenticated_session, serialize_user, utcnow
 from app.core.config import Settings, get_settings
 from app.core.security import generate_token, hash_token, sign_value
 from app.db import OAuthAuthorizationCode, OAuthClient, OAuthRefreshToken, User, get_db
@@ -148,6 +148,18 @@ def token_response(
     }
 
 
+def login_redirect_for_authorize(request: Request, settings: Settings) -> RedirectResponse:
+    path = request.url.path
+    base_path = settings.normalized_app_base_path
+    if base_path and path.startswith(f"{base_path}/"):
+        path = path.removeprefix(base_path)
+    return_to = f"{settings.public_base_url}{path}"
+    if request.url.query:
+        return_to = f"{return_to}?{request.url.query}"
+    query = urlencode({"return_to": return_to})
+    return RedirectResponse(f"{settings.public_base_url}/?{query}", status_code=status.HTTP_302_FOUND)
+
+
 @metadata_router.get("/.well-known/openid-configuration", response_model=OpenIdConfiguration)
 def openid_configuration(settings: Annotated[Settings, Depends(get_settings)]) -> OpenIdConfiguration:
     base_url = settings.public_base_url
@@ -170,8 +182,8 @@ def openid_configuration(settings: Annotated[Settings, Depends(get_settings)]) -
 @router.get("/authorize")
 def authorize(
     request: Request,
-    current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
     response_type: str = Query(),
     client_id: str = Query(),
     redirect_uri: str = Query(),
@@ -180,6 +192,13 @@ def authorize(
     code_challenge: str = Query(),
     code_challenge_method: str = Query(),
 ) -> RedirectResponse:
+    try:
+        current_user = get_authenticated_session(request, db, settings).user
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+            return login_redirect_for_authorize(request, settings)
+        raise
+
     if response_type != "code":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported response type.")
     if code_challenge_method != "S256":

@@ -54,6 +54,7 @@ function normalizeAssetBasePath(value: string): string {
 const assetBasePath = normalizeAssetBasePath(appBasePath);
 const brandLargeUrl = `${assetBasePath}/auth-large.png`;
 const brandSmallUrl = `${assetBasePath}/auth-small.png`;
+const pendingReturnTo = new URLSearchParams(window.location.search).get("return_to");
 
 const loginForm = reactive({ username: "", password: "" });
 const registerForm = reactive({ username: "", password: "", registrationCode: "" });
@@ -102,10 +103,40 @@ function showSuccess(message: string): void {
   toast.add({ severity: "success", summary: "Success", detail: message, life: 3000 });
 }
 
+function safeReturnTo(): string | null {
+  if (!pendingReturnTo) {
+    return null;
+  }
+  try {
+    const target = new URL(pendingReturnTo, window.location.origin);
+    if (target.origin !== window.location.origin) {
+      return null;
+    }
+    if (assetBasePath && target.pathname !== assetBasePath && !target.pathname.startsWith(`${assetBasePath}/`)) {
+      return null;
+    }
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+function redirectToReturnTo(): boolean {
+  const target = safeReturnTo();
+  if (!target) {
+    return false;
+  }
+  window.location.assign(target);
+  return true;
+}
+
 async function restoreSession(): Promise<void> {
   try {
     const response = await fetchMe();
     setCurrentUser(response.user);
+    if (redirectToReturnTo()) {
+      return;
+    }
     await loadDirectory();
   } catch {
     currentUser.value = null;
@@ -149,6 +180,9 @@ async function submitAuth(mode: "bootstrap" | "login" | "register"): Promise<voi
     }
     setCurrentUser(response.user);
     resetAuthForms();
+    if (redirectToReturnTo()) {
+      return;
+    }
     await Promise.all([loadDirectory(), loadAdminData()]);
     showSuccess("Signed in.");
   } catch (error) {

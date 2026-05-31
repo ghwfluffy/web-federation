@@ -90,6 +90,33 @@ def test_oauth_discovery_and_authorization_code_flow(isolated_client: TestClient
     assert userinfo_response.json()["preferred_username"] == "admin"
 
 
+def test_authorize_redirects_unauthenticated_user_to_auth_ui(isolated_client: TestClient) -> None:
+    seed_oauth_client(isolated_client)
+
+    response = isolated_client.get(
+        "/oauth/authorize",
+        params={
+            "response_type": "code",
+            "client_id": "goals",
+            "redirect_uri": "http://goals.local/auth/callback",
+            "scope": "openid profile",
+            "state": "abc",
+            "code_challenge": code_challenge("verifier"),
+            "code_challenge_method": "S256",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    location = response.headers["location"]
+    parsed = urlparse(location)
+    assert parsed.path in {"", "/"}
+    return_to = parse_qs(parsed.query)["return_to"][0]
+    parsed_return_to = urlparse(return_to)
+    assert parsed_return_to.path == "/oauth/authorize"
+    assert parse_qs(parsed_return_to.query)["client_id"] == ["goals"]
+
+
 def test_oauth_rejects_reused_code_and_invalid_redirect(isolated_client: TestClient) -> None:
     bootstrap_admin(isolated_client)
     seed_oauth_client(isolated_client)
