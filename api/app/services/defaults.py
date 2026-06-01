@@ -88,44 +88,42 @@ def ensure_default_oauth_clients(db: Session, settings: Settings) -> dict[str, O
 
 
 def ensure_default_sites(db: Session, settings: Settings) -> None:
-    if db.scalar(select(SiteDirectoryEntry.id).limit(1)) is not None:
-        return
     clients_by_client_id = ensure_default_oauth_clients(db, settings)
     now = utcnow()
-    db.add_all(
-        [
-            SiteDirectoryEntry(
-                slug="goals",
-                name="Goal Tracker",
-                description="Track goals, metrics, dashboards, and progress widgets.",
-                base_url=settings.goals_base_url,
-                icon="pi pi-flag",
-                oauth_client_id=clients_by_client_id["goals"].id,
-                display_order=10,
-                created_at=now,
-                updated_at=now,
-            ),
-            SiteDirectoryEntry(
-                slug="money-planner",
-                name="Fluffynomics",
-                description="Track accounts, expenses, contracts, investments, and net worth.",
-                base_url=settings.money_planner_base_url,
-                icon="pi pi-wallet",
-                oauth_client_id=clients_by_client_id["money-planner"].id,
-                display_order=20,
-                created_at=now,
-                updated_at=now,
-            ),
-            SiteDirectoryEntry(
-                slug="agent",
-                name="AI Assistant",
-                description="Run scheduled assistant tasks, mailbox workflows, and audited agent activity.",
-                base_url=settings.agent_base_url,
-                icon="pi pi-sparkles",
-                oauth_client_id=clients_by_client_id["agent"].id,
-                display_order=30,
-                created_at=now,
-                updated_at=now,
-            ),
-        ]
-    )
+    existing_slugs = set(db.scalars(select(SiteDirectoryEntry.slug)))
+    default_entries = [
+        SiteDirectoryEntry(
+            slug="goals",
+            name="Goal Tracker",
+            description="Track goals, metrics, dashboards, and progress widgets.",
+            base_url=settings.goals_base_url,
+            icon="pi pi-flag",
+            oauth_client_id=clients_by_client_id["goals"].id,
+            display_order=10,
+            created_at=now,
+            updated_at=now,
+        ),
+        SiteDirectoryEntry(
+            slug="money-planner",
+            name="Fluffynomics",
+            description="Track accounts, expenses, contracts, investments, and net worth.",
+            base_url=settings.money_planner_base_url,
+            icon="pi pi-wallet",
+            oauth_client_id=clients_by_client_id["money-planner"].id,
+            display_order=20,
+            created_at=now,
+            updated_at=now,
+        ),
+        SiteDirectoryEntry(
+            slug="agent",
+            name="AI Assistant",
+            description="Run scheduled assistant tasks, mailbox workflows, and audited agent activity.",
+            base_url=settings.agent_base_url,
+            icon="pi pi-sparkles",
+            oauth_client_id=clients_by_client_id["agent"].id,
+            display_order=30,
+            created_at=now,
+            updated_at=now,
+        ),
+    ]
+    db.add_all([entry for entry in default_entries if entry.slug not in existing_slugs])

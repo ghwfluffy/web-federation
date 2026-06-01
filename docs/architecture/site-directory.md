@@ -2,7 +2,9 @@
 
 The authenticated landing page lists enabled `site_directory_entries` ordered by `display_order`.
 
-Default entries are created lazily when the directory is first loaded and no entries exist:
+Default entries are created lazily when the directory is first loaded. Missing
+default entries are backfilled by slug, but existing rows are left alone so
+operators can intentionally rename, hide, reorder, or customize launch links:
 
 - Goal Tracker from `GOALS_BASE_URL`, default `/goals`
 - Fluffynomics from `MONEY_PLANNER_BASE_URL`, default `/money-planner`
