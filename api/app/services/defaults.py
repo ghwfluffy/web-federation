@@ -52,6 +52,12 @@ def default_oauth_clients(settings: Settings) -> list[DefaultOAuthClient]:
             app_base_url=settings.agent_base_url,
             callback_path="/api/v1/auth/oauth/callback",
         ),
+        DefaultOAuthClient(
+            client_id="apartment-gate",
+            name="Apartment Gate",
+            app_base_url=settings.apartment_gate_base_url,
+            callback_path="/auth/oauth/callback",
+        ),
     ]
 
 
@@ -122,6 +128,17 @@ def ensure_default_sites(db: Session, settings: Settings) -> None:
             icon="pi pi-sparkles",
             oauth_client_id=clients_by_client_id["agent"].id,
             display_order=30,
+            created_at=now,
+            updated_at=now,
+        ),
+        SiteDirectoryEntry(
+            slug="apartment-gate",
+            name="Apartment Gate",
+            description="Open apartment community gates and doors from a protected mobile app.",
+            base_url=settings.apartment_gate_base_url,
+            icon="pi pi-lock-open",
+            oauth_client_id=clients_by_client_id["apartment-gate"].id,
+            display_order=40,
             created_at=now,
             updated_at=now,
         ),

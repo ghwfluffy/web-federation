@@ -12,7 +12,12 @@ def test_directory_defaults_are_visible_to_authenticated_users(isolated_client: 
 
     assert response.status_code == 200
     payload = response.json()
-    assert [site["slug"] for site in payload["sites"]] == ["goals", "money-planner", "agent"]
+    assert [site["slug"] for site in payload["sites"]] == [
+        "goals",
+        "money-planner",
+        "agent",
+        "apartment-gate",
+    ]
 
 
 def test_directory_defaults_backfill_missing_sites(isolated_client: TestClient) -> None:
