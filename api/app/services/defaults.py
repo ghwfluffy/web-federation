@@ -58,6 +58,12 @@ def default_oauth_clients(settings: Settings) -> list[DefaultOAuthClient]:
             app_base_url=settings.apartment_gate_base_url,
             callback_path="/auth/oauth/callback",
         ),
+        DefaultOAuthClient(
+            client_id="file-share",
+            name="File Share",
+            app_base_url=settings.file_share_base_url,
+            callback_path="/auth/oauth/callback",
+        ),
     ]
 
 
@@ -139,6 +145,17 @@ def ensure_default_sites(db: Session, settings: Settings) -> None:
             icon="pi pi-lock-open",
             oauth_client_id=clients_by_client_id["apartment-gate"].id,
             display_order=40,
+            created_at=now,
+            updated_at=now,
+        ),
+        SiteDirectoryEntry(
+            slug="file-share",
+            name="File Share",
+            description="Upload files, manage expiring public share links, and revoke shared access.",
+            base_url=settings.file_share_base_url,
+            icon="pi pi-share-alt",
+            oauth_client_id=clients_by_client_id["file-share"].id,
+            display_order=50,
             created_at=now,
             updated_at=now,
         ),

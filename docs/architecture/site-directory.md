@@ -10,5 +10,6 @@ operators can intentionally rename, hide, reorder, or customize launch links:
 - Fluffynomics from `MONEY_PLANNER_BASE_URL`, default `/money-planner`
 - AI Assistant from `AGENT_BASE_URL`, default `/agent`
 - Apartment Gate from `APARTMENT_GATE_BASE_URL`, default `/gate`
+- File Share from `FILE_SHARE_BASE_URL`, default `/filewiz`
 
 Directory URLs are launch links only. Identity, password, registration-code, and profile-image management remains in the auth site. Consumer apps should link back to configured auth management URLs when they run in OAuth mode.

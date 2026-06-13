@@ -17,6 +17,7 @@ def test_directory_defaults_are_visible_to_authenticated_users(isolated_client: 
         "money-planner",
         "agent",
         "apartment-gate",
+        "file-share",
     ]
 
 

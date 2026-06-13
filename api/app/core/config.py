@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     money_planner_base_url: str
     agent_base_url: str = "/agent"
     apartment_gate_base_url: str = "/gate"
+    file_share_base_url: str = "/filewiz"
     backup_dir: str
     backup_script_path: str
     cors_origins: list[str]
