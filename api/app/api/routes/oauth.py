@@ -14,7 +14,13 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.routes.auth import as_aware_utc, get_authenticated_session, serialize_user, utcnow
+from app.api.routes.auth import (
+    apply_auth_cookies,
+    as_aware_utc,
+    resolve_authenticated_session,
+    serialize_user,
+    utcnow,
+)
 from app.core.config import Settings, get_settings
 from app.core.security import generate_token, hash_token, sign_value
 from app.db import OAuthAuthorizationCode, OAuthClient, OAuthRefreshToken, User, get_db
@@ -196,7 +202,8 @@ def authorize(
     code_challenge_method: str = Query(),
 ) -> RedirectResponse:
     try:
-        current_user = get_authenticated_session(request, db, settings).user
+        auth_resolution = resolve_authenticated_session(request, db, settings)
+        current_user = auth_resolution.session.user
     except HTTPException as exc:
         if exc.status_code == status.HTTP_401_UNAUTHORIZED:
             return login_redirect_for_authorize(request, settings)
@@ -234,7 +241,12 @@ def authorize(
     query = {"code": raw_code}
     if state is not None:
         query["state"] = state
-    return RedirectResponse(f"{redirect_uri}?{urlencode(query)}", status_code=status.HTTP_302_FOUND)
+    redirect_response = RedirectResponse(
+        f"{redirect_uri}?{urlencode(query)}",
+        status_code=status.HTTP_302_FOUND,
+    )
+    apply_auth_cookies(redirect_response, resolution=auth_resolution, settings=settings)
+    return redirect_response
 
 
 @router.post("/token")

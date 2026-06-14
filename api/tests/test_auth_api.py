@@ -40,6 +40,53 @@ def test_bootstrap_login_me_logout_flow(isolated_client: TestClient) -> None:
     assert after_logout_response.status_code == 401
 
 
+def test_login_remember_me_refreshes_expired_browser_session(isolated_client: TestClient) -> None:
+    bootstrap_admin(isolated_client)
+    isolated_client.post("/api/v1/auth/logout")
+
+    login_response = isolated_client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "supersafepassword", "remember_me": True},
+    )
+    assert login_response.status_code == 200
+    original_remember_cookie = isolated_client.cookies.get("auth_remember")
+    assert original_remember_cookie is not None
+
+    isolated_client.cookies.clear()
+    isolated_client.cookies.set(
+        "auth_remember",
+        original_remember_cookie,
+        domain="testserver.local",
+        path="/",
+    )
+
+    me_response = isolated_client.get("/api/v1/auth/me")
+
+    assert me_response.status_code == 200
+    assert me_response.json()["user"]["username"] == "admin"
+    assert isolated_client.cookies.get("auth_session") is not None
+    assert isolated_client.cookies.get("auth_remember") != original_remember_cookie
+
+
+def test_login_without_remember_me_clears_existing_remember_cookie(isolated_client: TestClient) -> None:
+    bootstrap_admin(isolated_client)
+    isolated_client.post("/api/v1/auth/logout")
+    remembered_login_response = isolated_client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "supersafepassword", "remember_me": True},
+    )
+    assert remembered_login_response.status_code == 200
+    assert isolated_client.cookies.get("auth_remember") is not None
+
+    normal_login_response = isolated_client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "supersafepassword", "remember_me": False},
+    )
+
+    assert normal_login_response.status_code == 200
+    assert isolated_client.cookies.get("auth_remember") is None
+
+
 def test_registration_codes_allow_signup(isolated_client: TestClient) -> None:
     bootstrap_admin(isolated_client)
 
@@ -126,5 +173,28 @@ def test_profile_update_password_and_avatar(isolated_client: TestClient) -> None
     )
     assert password_response.status_code == 200
 
+    me_response = isolated_client.get("/api/v1/auth/me")
+    assert me_response.status_code == 401
+
+
+def test_password_change_revokes_remember_cookie(isolated_client: TestClient) -> None:
+    bootstrap_admin(isolated_client)
+    isolated_client.post("/api/v1/auth/logout")
+    login_response = isolated_client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "supersafepassword", "remember_me": True},
+    )
+    assert login_response.status_code == 200
+    remember_cookie = isolated_client.cookies.get("auth_remember")
+    assert remember_cookie is not None
+
+    password_response = isolated_client.post(
+        "/api/v1/users/me/change-password",
+        json={"current_password": "supersafepassword", "new_password": "newpassword1"},
+    )
+    assert password_response.status_code == 200
+
+    isolated_client.cookies.clear()
+    isolated_client.cookies.set("auth_remember", remember_cookie, domain="testserver.local", path="/")
     me_response = isolated_client.get("/api/v1/auth/me")
     assert me_response.status_code == 401

@@ -65,7 +65,7 @@ const brandLargeUrl = `${assetBasePath}/auth-large.png`;
 const brandSmallUrl = `${assetBasePath}/auth-small.png`;
 const pendingReturnTo = new URLSearchParams(window.location.search).get("return_to");
 
-const loginForm = reactive({ username: "", password: "" });
+const loginForm = reactive({ username: "", password: "", rememberMe: false });
 const registerForm = reactive({ username: "", password: "", registrationCode: "" });
 const profileForm = reactive({ displayName: "", email: "", phone: "", timezone: "America/Chicago" });
 const userForm = reactive({
@@ -138,6 +138,7 @@ const authAccountSettingsUrl = computed(() => accountSettingsUrl(authBaseUrl.val
 function resetAuthForms(): void {
   loginForm.username = "";
   loginForm.password = "";
+  loginForm.rememberMe = false;
   registerForm.username = "";
   registerForm.password = "";
   registerForm.registrationCode = "";
@@ -290,6 +291,7 @@ async function submitAuth(mode: "bootstrap" | "login" | "register"): Promise<voi
       response = await postJson<SessionPayload>(`/auth/${mode}`, {
         username: form.username,
         password: form.password,
+        remember_me: form.rememberMe,
       });
     }
     setCurrentUser(response.user);
@@ -543,6 +545,10 @@ onMounted(async () => {
                 <form class="form-grid" @submit.prevent="submitAuth(bootstrapRequired ? 'bootstrap' : 'login')">
                   <InputText v-model="loginForm.username" placeholder="Username" autocomplete="username" />
                   <Password v-model="loginForm.password" placeholder="Password" toggle-mask :feedback="false" />
+                  <label class="check-row remember-row">
+                    <Checkbox v-model="loginForm.rememberMe" binary />
+                    Remember me
+                  </label>
                   <Button type="submit" label="Continue" icon="pi pi-arrow-right" :loading="loading" />
                 </form>
               </TabPanel>

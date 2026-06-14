@@ -169,6 +169,42 @@ def test_authorize_redirects_unauthenticated_user_to_auth_ui(isolated_client: Te
     assert parse_qs(parsed_return_to.query)["client_id"] == ["goals"]
 
 
+def test_authorize_uses_remember_cookie_when_session_cookie_is_missing(
+    isolated_client: TestClient,
+) -> None:
+    bootstrap_admin(isolated_client)
+    seed_oauth_client(isolated_client)
+    isolated_client.post("/api/v1/auth/logout")
+    login_response = isolated_client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "supersafepassword", "remember_me": True},
+    )
+    assert login_response.status_code == 200
+    remember_cookie = isolated_client.cookies.get("auth_remember")
+    assert remember_cookie is not None
+
+    isolated_client.cookies.clear()
+    isolated_client.cookies.set("auth_remember", remember_cookie, domain="testserver.local", path="/")
+    response = isolated_client.get(
+        "/oauth/authorize",
+        params={
+            "response_type": "code",
+            "client_id": "goals",
+            "redirect_uri": "http://goals.local/auth/callback",
+            "scope": "openid profile",
+            "state": "abc",
+            "code_challenge": code_challenge("verifier"),
+            "code_challenge_method": "S256",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["location"].startswith("http://goals.local/auth/callback")
+    assert "auth_session=" in response.headers["set-cookie"]
+    assert isolated_client.cookies.get("auth_remember") != remember_cookie
+
+
 def test_oauth_rejects_reused_code_and_invalid_redirect(isolated_client: TestClient) -> None:
     bootstrap_admin(isolated_client)
     seed_oauth_client(isolated_client)

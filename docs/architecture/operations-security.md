@@ -28,7 +28,7 @@ The frontend API client parses this envelope and falls back to generic status te
 
 Protected data:
 
-- Password hashes, session tokens, OAuth authorization codes, refresh tokens, registration codes, and profile images.
+- Password hashes, session tokens, first-party remember tokens, OAuth authorization codes, refresh tokens, registration codes, and profile images.
 - User profile metadata and central identity relationships for connected apps.
 - Backup artifacts under `./backups`.
 
@@ -44,6 +44,7 @@ Privileged actions:
 Current controls:
 
 - Server-side PostgreSQL sessions keyed by hashed random tokens.
+- Remember Me uses hashed, rotating, first-party refresh tokens stored in HTTP-only cookies scoped to the configured base path.
 - HTTP-only session cookies scoped to the configured base path.
 - Secure cookies outside development/test.
 - Nginx rate limits for general API traffic and stricter auth endpoints.

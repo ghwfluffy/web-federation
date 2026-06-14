@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     session_key_source: Literal["env", "default", "generated"] = "env"
     session_cookie_name: str
     session_duration_minutes: int
+    remember_cookie_name: str = "auth_remember"
+    remember_duration_days: int = 30
     auth_max_failed_attempts: int
     auth_lockout_minutes: int
     goals_base_url: str

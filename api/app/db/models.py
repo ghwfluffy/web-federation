@@ -47,6 +47,11 @@ class User(Base):
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     sessions: Mapped[list[AuthSession]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    auth_refresh_tokens: Mapped[list[AuthRefreshToken]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="AuthRefreshToken.user_id",
+    )
     profile_images: Mapped[list[UserProfileImage]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
@@ -132,6 +137,36 @@ class AuthSession(Base):
     ip_address: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     user: Mapped[User] = relationship(back_populates="sessions")
+
+
+class AuthRefreshToken(Base):
+    __tablename__ = "auth_refresh_tokens"
+    __table_args__ = (UniqueConstraint("token_hash", name="uq_auth_refresh_tokens_token_hash"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    token_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", name="fk_auth_refresh_tokens_user_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    replaced_by_token_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey(
+            "auth_refresh_tokens.id",
+            name="fk_auth_refresh_tokens_replaced_by_token_id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="auth_refresh_tokens", foreign_keys=[user_id])
 
 
 class OAuthClient(Base):

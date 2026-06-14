@@ -33,6 +33,7 @@ Minimum expected paths:
 Verify in browser devtools and automated smoke tests:
 
 - `auth_session` path matches configured auth `APP_BASE_PATH`; default/example `/auth`.
+- `auth_remember` appears only when Remember Me is selected, has the auth app path, and is HTTP-only.
 - `goal_tracker_session` path is the goals app base path.
 - `mp_session` path is the money-planner app base path.
 - No app sets a generic same-name cookie at `/`.
@@ -46,6 +47,7 @@ Verify in browser devtools and automated smoke tests:
 - bootstrap first admin
 - reject second bootstrap
 - login/logout/session expiration/session revocation
+- Remember Me cookie issue, rotation into a new auth session, and revocation on logout
 - password change invalidates sessions and refresh tokens
 - registration code create/update/revoke/expire
 - registration code traceability to created users

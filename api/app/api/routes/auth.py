@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
@@ -17,7 +18,7 @@ from app.core.security import (
     hash_token,
     verify_password,
 )
-from app.db import AuthSession, RegistrationCode, User, get_db
+from app.db import AuthRefreshToken, AuthSession, RegistrationCode, User, get_db
 from app.services.audit import record_audit_event
 
 router = APIRouter(prefix="/auth")
@@ -46,10 +47,18 @@ class SessionResponse(BaseModel):
 class AuthRequest(BaseModel):
     username: str = Field(min_length=3, max_length=100)
     password: str = Field(min_length=8, max_length=128)
+    remember_me: bool = False
 
 
 class RegisterRequest(AuthRequest):
     registration_code: str = Field(min_length=8, max_length=128)
+
+
+@dataclass(frozen=True)
+class AuthResolution:
+    session: AuthSession
+    session_token: str | None = None
+    remember_token: str | None = None
 
 
 def utcnow() -> datetime:
@@ -100,9 +109,31 @@ def set_session_cookie(response: Response, *, settings: Settings, raw_token: str
     )
 
 
+def set_remember_cookie(response: Response, *, settings: Settings, raw_token: str) -> None:
+    response.set_cookie(
+        key=settings.remember_cookie_name,
+        value=encode_signed_token(raw_token, settings.session_key or ""),
+        max_age=settings.remember_duration_days * 24 * 60 * 60,
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+        path=cookie_path(settings),
+    )
+
+
 def clear_session_cookie(response: Response, *, settings: Settings) -> None:
     response.delete_cookie(
         key=settings.session_cookie_name,
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+        path=cookie_path(settings),
+    )
+
+
+def clear_remember_cookie(response: Response, *, settings: Settings) -> None:
+    response.delete_cookie(
+        key=settings.remember_cookie_name,
         httponly=True,
         secure=settings.session_cookie_secure,
         samesite="lax",
@@ -116,34 +147,84 @@ def create_session(
     user: User,
     settings: Settings,
     request: Request,
-) -> str:
+) -> tuple[str, AuthSession]:
     raw_token = generate_token()
     now = utcnow()
-    db.add(
-        AuthSession(
-            user_id=user.id,
-            token_hash=hash_token(raw_token),
-            created_at=now,
-            last_seen_at=now,
-            expires_at=now + timedelta(minutes=settings.session_duration_minutes),
-            user_agent=request.headers.get("user-agent"),
-            ip_address=request.client.host if request.client else None,
-        )
+    auth_session = AuthSession(
+        user_id=user.id,
+        token_hash=hash_token(raw_token),
+        created_at=now,
+        last_seen_at=now,
+        expires_at=now + timedelta(minutes=settings.session_duration_minutes),
+        user_agent=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None,
     )
-    return raw_token
+    db.add(auth_session)
+    return raw_token, auth_session
 
 
-def get_authenticated_session(
+def create_auth_refresh_token(
+    db: Session,
+    *,
+    user: User,
+    settings: Settings,
     request: Request,
-    db: Annotated[Session, Depends(get_db)],
-    settings: Annotated[Settings, Depends(get_settings)],
-) -> AuthSession:
-    cookie_value = request.cookies.get(settings.session_cookie_name)
+) -> tuple[str, AuthRefreshToken]:
+    raw_token = generate_token()
+    now = utcnow()
+    refresh_token = AuthRefreshToken(
+        token_hash=hash_token(raw_token),
+        user_id=user.id,
+        created_at=now,
+        expires_at=now + timedelta(days=settings.remember_duration_days),
+        user_agent=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None,
+    )
+    db.add(refresh_token)
+    return raw_token, refresh_token
+
+
+def revoke_remember_cookie_token(request: Request, db: Session, settings: Settings) -> None:
+    cookie_value = request.cookies.get(settings.remember_cookie_name)
     if cookie_value is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+        return
     raw_token = decode_signed_token(cookie_value, settings.session_key or "")
     if raw_token is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+        return
+    refresh_token = db.scalar(
+        select(AuthRefreshToken).where(AuthRefreshToken.token_hash == hash_token(raw_token))
+    )
+    if refresh_token is None or refresh_token.revoked_at is not None:
+        return
+    refresh_token.revoked_at = utcnow()
+    record_audit_event(
+        db,
+        event_type="auth.remember.revoke",
+        message="Remember-me token revoked.",
+        actor=refresh_token.user,
+        details={"refresh_token_id": refresh_token.id},
+    )
+
+
+def apply_auth_cookies(
+    response: Response,
+    *,
+    resolution: AuthResolution,
+    settings: Settings,
+) -> None:
+    if resolution.session_token is not None:
+        set_session_cookie(response, settings=settings, raw_token=resolution.session_token)
+    if resolution.remember_token is not None:
+        set_remember_cookie(response, settings=settings, raw_token=resolution.remember_token)
+
+
+def read_session_from_cookie(request: Request, db: Session, settings: Settings) -> AuthSession | None:
+    cookie_value = request.cookies.get(settings.session_cookie_name)
+    if cookie_value is None:
+        return None
+    raw_token = decode_signed_token(cookie_value, settings.session_key or "")
+    if raw_token is None:
+        return None
     auth_session = db.scalar(select(AuthSession).where(AuthSession.token_hash == hash_token(raw_token)))
     now = utcnow()
     if (
@@ -151,12 +232,95 @@ def get_authenticated_session(
         or auth_session.revoked_at is not None
         or as_aware_utc(auth_session.expires_at) <= now
     ):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-    if auth_session.user.is_disabled:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is disabled.")
-    auth_session.last_seen_at = now
-    db.commit()
+        return None
     return auth_session
+
+
+def refresh_session_from_remember_cookie(
+    request: Request,
+    db: Session,
+    settings: Settings,
+) -> AuthResolution | None:
+    cookie_value = request.cookies.get(settings.remember_cookie_name)
+    if cookie_value is None:
+        return None
+    raw_token = decode_signed_token(cookie_value, settings.session_key or "")
+    if raw_token is None:
+        return None
+    refresh_token = db.scalar(
+        select(AuthRefreshToken).where(AuthRefreshToken.token_hash == hash_token(raw_token))
+    )
+    now = utcnow()
+    if (
+        refresh_token is None
+        or refresh_token.revoked_at is not None
+        or as_aware_utc(refresh_token.expires_at) <= now
+    ):
+        return None
+    if refresh_token.user.is_disabled:
+        refresh_token.revoked_at = now
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is disabled.")
+
+    refresh_token.revoked_at = now
+    refresh_token.last_used_at = now
+    raw_session_token, auth_session = create_session(
+        db,
+        user=refresh_token.user,
+        settings=settings,
+        request=request,
+    )
+    raw_remember_token, replacement = create_auth_refresh_token(
+        db,
+        user=refresh_token.user,
+        settings=settings,
+        request=request,
+    )
+    db.flush()
+    refresh_token.replaced_by_token_id = replacement.id
+    record_audit_event(
+        db,
+        event_type="auth.remember.refresh",
+        message="Remember-me token refreshed auth session.",
+        actor=refresh_token.user,
+        details={
+            "refresh_token_id": refresh_token.id,
+            "replacement_refresh_token_id": replacement.id,
+        },
+    )
+    db.commit()
+    db.refresh(auth_session)
+    return AuthResolution(
+        session=auth_session,
+        session_token=raw_session_token,
+        remember_token=raw_remember_token,
+    )
+
+
+def resolve_authenticated_session(request: Request, db: Session, settings: Settings) -> AuthResolution:
+    auth_session = read_session_from_cookie(request, db, settings)
+    if auth_session is not None:
+        if auth_session.user.is_disabled:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is disabled.")
+        auth_session.last_seen_at = utcnow()
+        db.commit()
+        return AuthResolution(session=auth_session)
+
+    refreshed_session = refresh_session_from_remember_cookie(request, db, settings)
+    if refreshed_session is not None:
+        return refreshed_session
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+
+def get_authenticated_session(
+    request: Request,
+    response: Response,
+    db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> AuthSession:
+    resolution = resolve_authenticated_session(request, db, settings)
+    apply_auth_cookies(response, resolution=resolution, settings=settings)
+    return resolution.session
 
 
 def get_current_user(auth_session: Annotated[AuthSession, Depends(get_authenticated_session)]) -> User:
@@ -196,17 +360,30 @@ def bootstrap(
     )
     db.add(user)
     db.flush()
-    raw_token = create_session(db, user=user, settings=settings, request=request)
+    raw_token, _auth_session = create_session(db, user=user, settings=settings, request=request)
+    revoke_remember_cookie_token(request, db, settings)
+    raw_remember_token = None
+    if payload.remember_me:
+        raw_remember_token, _remember_token = create_auth_refresh_token(
+            db,
+            user=user,
+            settings=settings,
+            request=request,
+        )
     record_audit_event(
         db,
         event_type="auth.bootstrap",
         message="Bootstrap admin created.",
         actor=user,
-        details={"username": user.username},
+        details={"username": user.username, "remember_me": payload.remember_me},
     )
     db.commit()
     db.refresh(user)
     set_session_cookie(response, settings=settings, raw_token=raw_token)
+    if raw_remember_token is not None:
+        set_remember_cookie(response, settings=settings, raw_token=raw_remember_token)
+    else:
+        clear_remember_cookie(response, settings=settings)
     return SessionResponse(user=serialize_user(user, settings))
 
 
@@ -223,17 +400,30 @@ def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password.")
     if user.is_disabled:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is disabled.")
-    raw_token = create_session(db, user=user, settings=settings, request=request)
+    raw_token, _auth_session = create_session(db, user=user, settings=settings, request=request)
+    revoke_remember_cookie_token(request, db, settings)
+    raw_remember_token = None
+    if payload.remember_me:
+        raw_remember_token, _remember_token = create_auth_refresh_token(
+            db,
+            user=user,
+            settings=settings,
+            request=request,
+        )
     record_audit_event(
         db,
         event_type="auth.login",
         message="User logged in.",
         actor=user,
-        details={"username": user.username},
+        details={"username": user.username, "remember_me": payload.remember_me},
     )
     db.commit()
     db.refresh(user)
     set_session_cookie(response, settings=settings, raw_token=raw_token)
+    if raw_remember_token is not None:
+        set_remember_cookie(response, settings=settings, raw_token=raw_remember_token)
+    else:
+        clear_remember_cookie(response, settings=settings)
     return SessionResponse(user=serialize_user(user, settings))
 
 
@@ -268,17 +458,34 @@ def register(
     )
     db.add(user)
     db.flush()
-    raw_token = create_session(db, user=user, settings=settings, request=request)
+    raw_token, _auth_session = create_session(db, user=user, settings=settings, request=request)
+    revoke_remember_cookie_token(request, db, settings)
+    raw_remember_token = None
+    if payload.remember_me:
+        raw_remember_token, _remember_token = create_auth_refresh_token(
+            db,
+            user=user,
+            settings=settings,
+            request=request,
+        )
     record_audit_event(
         db,
         event_type="auth.register",
         message="User registered.",
         actor=user,
-        details={"username": user.username, "registration_code_id": code.id},
+        details={
+            "username": user.username,
+            "registration_code_id": code.id,
+            "remember_me": payload.remember_me,
+        },
     )
     db.commit()
     db.refresh(user)
     set_session_cookie(response, settings=settings, raw_token=raw_token)
+    if raw_remember_token is not None:
+        set_remember_cookie(response, settings=settings, raw_token=raw_remember_token)
+    else:
+        clear_remember_cookie(response, settings=settings)
     return SessionResponse(user=serialize_user(user, settings))
 
 
@@ -313,6 +520,9 @@ def logout(
                     details={"session_id": auth_session.id},
                 )
                 db.commit()
+    revoke_remember_cookie_token(request, db, settings)
+    db.commit()
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     clear_session_cookie(response, settings=settings)
+    clear_remember_cookie(response, settings=settings)
     return response

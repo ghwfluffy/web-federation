@@ -5,6 +5,7 @@ from typing import Protocol, cast
 from sqlalchemy import Table
 
 from app.db.models import (
+    AuthRefreshToken,
     AuthSession,
     OAuthAuthorizationCode,
     OAuthClient,
@@ -28,6 +29,7 @@ def test_core_tables_have_expected_uniqueness_constraints() -> None:
     assert "uq_users_username" in unique_constraint_names(User)
     assert "uq_registration_codes_code_hash" in unique_constraint_names(RegistrationCode)
     assert "uq_auth_sessions_token_hash" in unique_constraint_names(AuthSession)
+    assert "uq_auth_refresh_tokens_token_hash" in unique_constraint_names(AuthRefreshToken)
     assert "uq_oauth_clients_client_id" in unique_constraint_names(OAuthClient)
     assert "uq_oauth_authorization_codes_code_hash" in unique_constraint_names(OAuthAuthorizationCode)
     assert "uq_oauth_refresh_tokens_token_hash" in unique_constraint_names(OAuthRefreshToken)

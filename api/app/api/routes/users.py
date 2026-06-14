@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.routes.auth import get_current_admin_user, get_current_user, serialize_user, utcnow
 from app.core.config import Settings, get_settings
 from app.core.security import hash_password, verify_password
-from app.db import AuthSession, User, UserProfileImage, get_db
+from app.db import AuthRefreshToken, AuthSession, User, UserProfileImage, get_db
 from app.services.audit import record_audit_event
 from app.services.images import ImageValidationError, render_safe_avatar_png
 
@@ -120,6 +120,13 @@ def change_password(
     user.password_changed_at = utcnow()
     user.updated_at = utcnow()
     db.query(AuthSession).filter(AuthSession.user_id == user.id, AuthSession.revoked_at.is_(None)).update(
+        {"revoked_at": utcnow()},
+        synchronize_session=False,
+    )
+    db.query(AuthRefreshToken).filter(
+        AuthRefreshToken.user_id == user.id,
+        AuthRefreshToken.revoked_at.is_(None),
+    ).update(
         {"revoked_at": utcnow()},
         synchronize_session=False,
     )
@@ -269,6 +276,13 @@ def admin_reset_password(
     user.password_changed_at = utcnow()
     user.updated_at = utcnow()
     db.query(AuthSession).filter(AuthSession.user_id == user.id, AuthSession.revoked_at.is_(None)).update(
+        {"revoked_at": utcnow()},
+        synchronize_session=False,
+    )
+    db.query(AuthRefreshToken).filter(
+        AuthRefreshToken.user_id == user.id,
+        AuthRefreshToken.revoked_at.is_(None),
+    ).update(
         {"revoked_at": utcnow()},
         synchronize_session=False,
     )

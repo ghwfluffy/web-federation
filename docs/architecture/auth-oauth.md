@@ -4,6 +4,18 @@ The auth site owns first-party login, registration, password changes, profile me
 
 The default public base path is `/auth`, but callers must use the configured `PUBLIC_URL` plus `APP_BASE_PATH`. OAuth discovery is served from `${AUTH_BASE_URL}/.well-known/openid-configuration`.
 
+## First-Party Sessions
+
+Normal central-auth browser sessions use a short-lived, HTTP-only session cookie
+backed by hashed `auth_sessions` rows.
+
+When a user selects Remember Me at sign-in, the auth app also issues a
+long-lived, HTTP-only remember cookie backed by a hashed `auth_refresh_tokens`
+row. The remember token is first-party to the auth app, not tied to any OAuth
+client, and is rotated whenever it mints a fresh short-lived auth session.
+Logout, password changes, and admin password resets revoke active remember
+tokens.
+
 ## OAuth Flow
 
 - Consumer apps use Authorization Code with PKCE.

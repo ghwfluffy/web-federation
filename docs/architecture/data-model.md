@@ -6,6 +6,7 @@ The core identity schema is owned by Alembic.
 - `user_profile_images`: safe PNG avatar bytes and metadata.
 - `registration_codes`: invite-style registration codes, expiration, revocation, and creator.
 - `auth_sessions`: central first-party session records keyed by a hashed random token.
+- `auth_refresh_tokens`: first-party Remember Me tokens keyed by a hashed random token, with rotation and revocation metadata.
 - `oauth_clients`: registered consumer applications and redirect allow-lists.
 - `oauth_authorization_codes`: short-lived PKCE authorization codes.
 - `oauth_refresh_tokens`: hashed refresh tokens with rotation and revocation metadata.
