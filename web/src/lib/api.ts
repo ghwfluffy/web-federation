@@ -10,6 +10,8 @@ export interface UserSummary {
   id: string;
   username: string;
   display_name: string | null;
+  email: string | null;
+  phone: string | null;
   timezone: string;
   is_admin: boolean;
   is_disabled: boolean;

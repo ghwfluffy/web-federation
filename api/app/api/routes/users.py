@@ -23,6 +23,8 @@ class UserListResponse(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     display_name: str | None = Field(default=None, max_length=100)
+    email: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=50)
     timezone: str = Field(default="America/Chicago", max_length=100)
 
 
@@ -35,6 +37,8 @@ class AdminCreateUserRequest(BaseModel):
     username: str = Field(min_length=3, max_length=100)
     password: str = Field(min_length=8, max_length=128)
     display_name: str | None = Field(default=None, max_length=100)
+    email: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=50)
     timezone: str = Field(default="America/Chicago", max_length=100)
     is_admin: bool = False
     is_disabled: bool = False
@@ -42,6 +46,8 @@ class AdminCreateUserRequest(BaseModel):
 
 class AdminUpdateUserRequest(BaseModel):
     display_name: str | None = Field(default=None, max_length=100)
+    email: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=50)
     timezone: str = Field(default="America/Chicago", max_length=100)
     is_admin: bool = False
     is_disabled: bool = False
@@ -59,6 +65,13 @@ def admin_count(db: Session) -> int:
     return db.scalar(select(func.count(User.id)).where(User.is_admin.is_(True))) or 0
 
 
+def normalize_optional_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
 @router.get("/me")
 def read_current_profile(
     user: Annotated[User, Depends(get_current_user)],
@@ -74,7 +87,9 @@ def update_current_profile(
     db: Annotated[Session, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> dict[str, object]:
-    user.display_name = payload.display_name
+    user.display_name = normalize_optional_text(payload.display_name)
+    user.email = normalize_optional_text(payload.email)
+    user.phone = normalize_optional_text(payload.phone)
     user.timezone = payload.timezone
     user.updated_at = utcnow()
     record_audit_event(
@@ -181,7 +196,9 @@ def admin_create_user(
     user = User(
         username=payload.username.strip(),
         password_hash=hash_password(payload.password),
-        display_name=payload.display_name,
+        display_name=normalize_optional_text(payload.display_name),
+        email=normalize_optional_text(payload.email),
+        phone=normalize_optional_text(payload.phone),
         timezone=payload.timezone,
         is_admin=payload.is_admin,
         is_disabled=payload.is_disabled,
@@ -218,7 +235,9 @@ def admin_update_user(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Cannot remove the last admin.",
         )
-    user.display_name = payload.display_name
+    user.display_name = normalize_optional_text(payload.display_name)
+    user.email = normalize_optional_text(payload.email)
+    user.phone = normalize_optional_text(payload.phone)
     user.timezone = payload.timezone
     user.is_admin = payload.is_admin
     user.is_disabled = payload.is_disabled

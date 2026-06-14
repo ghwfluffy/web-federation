@@ -27,6 +27,8 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(100), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     timezone: Mapped[str] = mapped_column(String(100), nullable=False, default="America/Chicago")
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_disabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

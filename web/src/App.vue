@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import {
+  FederatedBanner,
+  accountSettingsUrl,
+  createGhwizFederatedSites,
+  type FederatedBannerSite,
+  type FederatedBannerUser,
+} from "@ghwiz/federated-banner";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Checkbox from "primevue/checkbox";
@@ -37,6 +44,8 @@ const currentUser = ref<UserSummary | null>(null);
 const users = ref<UserSummary[]>([]);
 const registrationCodes = ref<RegistrationCodeSummary[]>([]);
 const directorySites = ref<DirectorySiteSummary[]>([]);
+const activeWorkspace = ref<"launcher" | "services">("launcher");
+const servicesTab = ref("apps");
 const bootstrapRequired = ref(false);
 const authTab = ref("login");
 const loading = ref(false);
@@ -58,11 +67,13 @@ const pendingReturnTo = new URLSearchParams(window.location.search).get("return_
 
 const loginForm = reactive({ username: "", password: "" });
 const registerForm = reactive({ username: "", password: "", registrationCode: "" });
-const profileForm = reactive({ displayName: "", timezone: "America/Chicago" });
+const profileForm = reactive({ displayName: "", email: "", phone: "", timezone: "America/Chicago" });
 const userForm = reactive({
   username: "",
   password: "",
   displayName: "",
+  email: "",
+  phone: "",
   timezone: "America/Chicago",
   isAdmin: false,
   isDisabled: false,
@@ -73,6 +84,53 @@ const codeForm = reactive({
 });
 
 const displayName = computed(() => currentUser.value?.display_name || currentUser.value?.username || "");
+const authBaseUrl = computed(() => {
+  const configured = import.meta.env.VITE_AUTH_BASE_URL?.trim() || appBasePath;
+  return normalizeAssetBasePath(configured);
+});
+const bannerUser = computed<FederatedBannerUser | null>(() => {
+  if (!currentUser.value) {
+    return null;
+  }
+  return {
+    displayName: displayName.value,
+    username: currentUser.value.username,
+    avatarUrl: currentUser.value.avatar_url,
+    isAdmin: currentUser.value.is_admin,
+  };
+});
+const configuredSites = computed<FederatedBannerSite[]>(() =>
+  createGhwizFederatedSites({
+    authBaseUrl: authBaseUrl.value || assetBasePath || "/",
+    goalsBaseUrl: import.meta.env.VITE_GOALS_BASE_URL,
+    moneyPlannerBaseUrl: import.meta.env.VITE_MONEY_PLANNER_BASE_URL,
+    agentBaseUrl: import.meta.env.VITE_AGENT_BASE_URL,
+    apartmentGateBaseUrl: import.meta.env.VITE_APARTMENT_GATE_BASE_URL,
+    fileShareBaseUrl: import.meta.env.VITE_FILE_SHARE_BASE_URL,
+  }),
+);
+const federatedServicesSite = computed<FederatedBannerSite>(() => ({
+  slug: "federated-services",
+  name: "Federated Services",
+  baseUrl: `${authBaseUrl.value || assetBasePath || "/"}?tab=apps`,
+  description: "Account settings, users, registration codes, and service administration.",
+}));
+const directoryBannerSites = computed<FederatedBannerSite[]>(() =>
+  directorySites.value.map((site) => ({
+    slug: site.slug,
+    name: site.name,
+    baseUrl: site.base_url,
+    description: site.description,
+    icon: site.icon,
+  })),
+);
+const bannerSites = computed<FederatedBannerSite[]>(() => {
+  const appSites = directoryBannerSites.value.length > 0
+    ? directoryBannerSites.value
+    : configuredSites.value.filter((site) => site.slug !== "federated-services");
+  return [federatedServicesSite.value, ...appSites];
+});
+const authAccountSettingsUrl = computed(() => accountSettingsUrl(authBaseUrl.value || assetBasePath || "/"));
 
 function resetAuthForms(): void {
   loginForm.username = "";
@@ -87,6 +145,8 @@ function clearSessionState(): void {
   users.value = [];
   registrationCodes.value = [];
   directorySites.value = [];
+  activeWorkspace.value = "launcher";
+  servicesTab.value = "apps";
   resetAuthForms();
 }
 
@@ -130,6 +190,42 @@ function redirectToReturnTo(): boolean {
   return true;
 }
 
+function applyWorkspaceFromUrl(): void {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get("tab");
+  if (tab === "profile" || tab === "users" || tab === "codes" || tab === "apps") {
+    activeWorkspace.value = "services";
+    servicesTab.value = tab;
+  }
+}
+
+function setWorkspaceUrl(tab: string | null): void {
+  const url = new URL(window.location.href);
+  if (tab) {
+    url.searchParams.set("tab", tab);
+  } else {
+    url.searchParams.delete("tab");
+  }
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function openServices(tab = "apps"): void {
+  activeWorkspace.value = "services";
+  servicesTab.value = tab;
+  setWorkspaceUrl(tab);
+}
+
+function openLauncher(): void {
+  activeWorkspace.value = "launcher";
+  setWorkspaceUrl(null);
+}
+
+function handleBannerAction(action: string): void {
+  if (action === "account-settings") {
+    openServices("profile");
+  }
+}
+
 async function restoreSession(): Promise<void> {
   try {
     const response = await fetchMe();
@@ -158,6 +254,8 @@ async function loadWelcomePhrase(): Promise<void> {
 function setCurrentUser(user: UserSummary): void {
   currentUser.value = user;
   profileForm.displayName = user.display_name ?? "";
+  profileForm.email = user.email ?? "";
+  profileForm.phone = user.phone ?? "";
   profileForm.timezone = user.timezone;
 }
 
@@ -225,6 +323,8 @@ async function saveProfile(): Promise<void> {
   try {
     const user = await patchJson<UserSummary>("/users/me", {
       display_name: profileForm.displayName || null,
+      email: profileForm.email || null,
+      phone: profileForm.phone || null,
       timezone: profileForm.timezone,
     });
     setCurrentUser(user);
@@ -275,6 +375,8 @@ async function createUser(): Promise<void> {
       username: userForm.username,
       password: userForm.password,
       display_name: userForm.displayName || null,
+      email: userForm.email || null,
+      phone: userForm.phone || null,
       timezone: userForm.timezone,
       is_admin: userForm.isAdmin,
       is_disabled: userForm.isDisabled,
@@ -283,6 +385,8 @@ async function createUser(): Promise<void> {
       username: "",
       password: "",
       displayName: "",
+      email: "",
+      phone: "",
       timezone: "America/Chicago",
       isAdmin: false,
       isDisabled: false,
@@ -298,6 +402,8 @@ async function toggleUserDisabled(user: UserSummary): Promise<void> {
   try {
     await patchJson<UserSummary>(`/users/${user.id}`, {
       display_name: user.display_name,
+      email: user.email,
+      phone: user.phone,
       timezone: user.timezone,
       is_admin: user.is_admin,
       is_disabled: !user.is_disabled,
@@ -372,6 +478,7 @@ async function copyCode(code: RegistrationCodeSummary): Promise<void> {
 }
 
 onMounted(async () => {
+  applyWorkspaceFromUrl();
   await Promise.all([statusStore.loadStatus(), restoreSession(), loadWelcomePhrase()]);
   await loadAdminData();
 });
@@ -381,19 +488,17 @@ onMounted(async () => {
   <main class="app-shell">
     <Toast position="top-right" />
 
-    <section v-if="currentUser" class="app-header">
-      <div class="brand-lockup">
-        <img v-if="currentUser" :src="brandSmallUrl" class="brand-mark-small" alt="" />
-        <div>
-          <!-- p class="eyebrow">Ghw Central</p -->
-          <h1>Ghw Central</h1>
-        </div>
-      </div>
-      <div class="header-actions">
-        <span v-if="currentUser">{{ displayName }}</span>
-        <Button v-if="currentUser" label="Sign out" icon="pi pi-sign-out" severity="secondary" @click="logout" />
-      </div>
-    </section>
+    <FederatedBanner
+      v-if="currentUser"
+      app-name="Federated Services"
+      :app-url="authBaseUrl || assetBasePath || '/'"
+      current-app-slug="federated-services"
+      :account-settings-url="authAccountSettingsUrl"
+      :sites="bannerSites"
+      :user="bannerUser"
+      @action="handleBannerAction"
+      @sign-out="logout"
+    />
 
     <section v-if="!currentUser" class="auth-grid">
       <div class="auth-brand">
@@ -433,17 +538,40 @@ onMounted(async () => {
       </Card>
     </section>
 
-    <Tabs v-else value="directory" class="workspace-tabs">
+    <section v-else-if="activeWorkspace === 'launcher'" class="launcher-shell">
+      <div class="launcher-grid">
+        <button class="site-link site-link-button" type="button" @click="openServices('apps')">
+          <i class="pi pi-shield" aria-hidden="true"></i>
+          <span>
+            <strong>Federated Services</strong>
+            <small>Account settings, users, registration codes, and service administration.</small>
+          </span>
+        </button>
+        <a v-for="site in directorySites" :key="site.id" class="site-link" :href="site.base_url">
+          <i v-if="site.icon" :class="site.icon" aria-hidden="true"></i>
+          <span>
+            <strong>{{ site.name }}</strong>
+            <small>{{ site.description }}</small>
+          </span>
+        </a>
+      </div>
+    </section>
+
+    <section v-else class="services-workspace">
+      <div class="services-toolbar">
+        <Button type="button" label="Apps" icon="pi pi-arrow-left" severity="secondary" @click="openLauncher" />
+      </div>
+    <Tabs v-model:value="servicesTab" class="workspace-tabs">
       <TabList>
-        <Tab value="directory">Directory</Tab>
+        <Tab value="apps">Apps</Tab>
         <Tab v-if="currentUser.is_admin" value="users">Users</Tab>
         <Tab v-if="currentUser.is_admin" value="codes">Registration Codes</Tab>
-        <Tab value="profile">My Profile</Tab>
+        <Tab value="profile">Account Settings</Tab>
       </TabList>
       <TabPanels>
-        <TabPanel value="directory">
+        <TabPanel value="apps">
           <Card>
-            <template #title>Directory</template>
+            <template #title>Apps</template>
             <template #content>
               <div class="site-grid">
                 <a v-for="site in directorySites" :key="site.id" class="site-link" :href="site.base_url">
@@ -467,6 +595,8 @@ onMounted(async () => {
                   <InputText v-model="userForm.username" placeholder="Username" />
                   <Password v-model="userForm.password" placeholder="Password" toggle-mask />
                   <InputText v-model="userForm.displayName" placeholder="Display name" />
+                  <InputText v-model="userForm.email" placeholder="Email" />
+                  <InputText v-model="userForm.phone" placeholder="Phone" />
                   <InputText v-model="userForm.timezone" placeholder="Timezone" />
                   <label class="check-row"><Checkbox v-model="userForm.isAdmin" binary /> Admin</label>
                   <label class="check-row"><Checkbox v-model="userForm.isDisabled" binary /> Disabled</label>
@@ -562,11 +692,13 @@ onMounted(async () => {
 
         <TabPanel value="profile">
           <Card>
-            <template #title>My Profile</template>
+            <template #title>Account Settings</template>
             <template #content>
               <form class="form-grid" @submit.prevent="saveProfile">
                 <img v-if="currentUser.avatar_url" :src="currentUser.avatar_url" class="avatar-preview" alt="" />
                 <InputText v-model="profileForm.displayName" placeholder="Display name" />
+                <InputText v-model="profileForm.email" placeholder="Email" />
+                <InputText v-model="profileForm.phone" placeholder="Phone" />
                 <InputText v-model="profileForm.timezone" placeholder="Timezone" />
                 <input type="file" accept="image/*" @change="uploadProfileAvatar" />
                 <div class="button-row">
@@ -579,5 +711,6 @@ onMounted(async () => {
         </TabPanel>
       </TabPanels>
     </Tabs>
+    </section>
   </main>
 </template>

@@ -2,7 +2,7 @@
 
 The core identity schema is owned by Alembic.
 
-- `users`: central account records, admin flags, disabled flags, password metadata, and profile fields.
+- `users`: central account records, admin flags, disabled flags, password metadata, email, phone, and profile fields.
 - `user_profile_images`: safe PNG avatar bytes and metadata.
 - `registration_codes`: invite-style registration codes, expiration, revocation, and creator.
 - `auth_sessions`: central first-party session records keyed by a hashed random token.

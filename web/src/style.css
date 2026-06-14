@@ -107,6 +107,23 @@ select {
   margin-bottom: 20px;
 }
 
+.launcher-shell,
+.services-workspace {
+  margin-top: 20px;
+}
+
+.launcher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.services-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 14px;
+}
+
 .auth-grid,
 .panel-stack,
 .form-grid,
@@ -149,6 +166,20 @@ select {
   color: inherit;
   padding: 12px;
   text-decoration: none;
+}
+
+.site-link-button {
+  width: 100%;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.site-link:hover,
+.site-link:focus-visible {
+  border-color: #9db4d8;
+  outline: 0;
+  background: #f8fbff;
 }
 
 .site-link i {

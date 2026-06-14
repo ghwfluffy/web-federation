@@ -9,7 +9,7 @@ The default public base path is `/auth`, but callers must use the configured `PU
 - Consumer apps use Authorization Code with PKCE.
 - `/oauth/authorize` requires an existing central auth session and issues a short-lived code.
 - `/oauth/token` exchanges a valid code and PKCE verifier for an access token and refresh token.
-- `/oauth/userinfo` returns the stable central subject, username, display name, avatar URL, updated timestamp, and admin flag.
+- `/oauth/userinfo` returns the stable central subject, username, display name, email, phone, timezone, avatar URL, updated timestamp, and admin flag.
 - `/oauth/revoke` revokes refresh tokens.
 
 Consumer apps should keep their own app-scoped cookies after callback. They must not reuse or depend on the central auth session cookie.
