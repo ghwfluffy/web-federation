@@ -1,12 +1,14 @@
 # Site Directory
 
-The authenticated landing page is the federated launcher. It uses the shared
-`vendor/federated-banner` package at the top and lists enabled
-`site_directory_entries` as large launch buttons ordered by `display_order`.
+The authenticated root page uses the shared `vendor/federated-banner` package at
+the top and opens to Account Settings by default without the app switcher or app
+directory. The root page should not expose connected apps unless the user
+explicitly navigates to the Apps tab.
 
 The auth management workspace is exposed as `Federated Services`, not as the
 public root site. It contains the auth-owned apps/users/registration/account
-settings tabs.
+settings tabs. `?tab=apps` opens the federated launcher, and
+`?tab=account-settings` opens the account settings tab.
 
 Default entries are created lazily when the directory is first loaded. Missing
 default entries are backfilled by slug, but existing rows are left alone so

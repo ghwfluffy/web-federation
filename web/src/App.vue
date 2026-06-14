@@ -18,7 +18,7 @@ import TabPanels from "primevue/tabpanels";
 import Tabs from "primevue/tabs";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 
 import {
   deleteRequest,
@@ -45,7 +45,7 @@ const users = ref<UserSummary[]>([]);
 const registrationCodes = ref<RegistrationCodeSummary[]>([]);
 const directorySites = ref<DirectorySiteSummary[]>([]);
 const activeWorkspace = ref<"launcher" | "services">("launcher");
-const servicesTab = ref("apps");
+const servicesTab = ref("profile");
 const bootstrapRequired = ref(false);
 const authTab = ref("login");
 const loading = ref(false);
@@ -125,6 +125,9 @@ const directoryBannerSites = computed<FederatedBannerSite[]>(() =>
   })),
 );
 const bannerSites = computed<FederatedBannerSite[]>(() => {
+  if (activeWorkspace.value === "launcher") {
+    return [];
+  }
   const appSites = directoryBannerSites.value.length > 0
     ? directoryBannerSites.value
     : configuredSites.value.filter((site) => site.slug !== "federated-services");
@@ -146,7 +149,7 @@ function clearSessionState(): void {
   registrationCodes.value = [];
   directorySites.value = [];
   activeWorkspace.value = "launcher";
-  servicesTab.value = "apps";
+  servicesTab.value = "profile";
   resetAuthForms();
 }
 
@@ -192,17 +195,31 @@ function redirectToReturnTo(): boolean {
 
 function applyWorkspaceFromUrl(): void {
   const params = new URLSearchParams(window.location.search);
-  const tab = params.get("tab");
-  if (tab === "profile" || tab === "users" || tab === "codes" || tab === "apps") {
+  const tab = serviceTabFromRoute(params.get("tab"));
+  if (tab) {
     activeWorkspace.value = "services";
     servicesTab.value = tab;
   }
 }
 
+function serviceTabFromRoute(tab: string | null): string | null {
+  if (tab === "account-settings" || tab === "profile") {
+    return "profile";
+  }
+  if (tab === "users" || tab === "codes" || tab === "apps") {
+    return tab;
+  }
+  return null;
+}
+
+function routeTabForService(tab: string): string {
+  return tab === "profile" ? "account-settings" : tab;
+}
+
 function setWorkspaceUrl(tab: string | null): void {
   const url = new URL(window.location.href);
   if (tab) {
-    url.searchParams.set("tab", tab);
+    url.searchParams.set("tab", routeTabForService(tab));
   } else {
     url.searchParams.delete("tab");
   }
@@ -216,8 +233,7 @@ function openServices(tab = "apps"): void {
 }
 
 function openLauncher(): void {
-  activeWorkspace.value = "launcher";
-  setWorkspaceUrl(null);
+  openServices("apps");
 }
 
 function handleBannerAction(action: string): void {
@@ -477,6 +493,12 @@ async function copyCode(code: RegistrationCodeSummary): Promise<void> {
   }
 }
 
+watch(servicesTab, (tab) => {
+  if (activeWorkspace.value === "services") {
+    setWorkspaceUrl(tab);
+  }
+});
+
 onMounted(async () => {
   applyWorkspaceFromUrl();
   await Promise.all([statusStore.loadStatus(), restoreSession(), loadWelcomePhrase()]);
@@ -538,23 +560,24 @@ onMounted(async () => {
       </Card>
     </section>
 
-    <section v-else-if="activeWorkspace === 'launcher'" class="launcher-shell">
-      <div class="launcher-grid">
-        <button class="site-link site-link-button" type="button" @click="openServices('apps')">
-          <i class="pi pi-shield" aria-hidden="true"></i>
-          <span>
-            <strong>Federated Services</strong>
-            <small>Account settings, users, registration codes, and service administration.</small>
-          </span>
-        </button>
-        <a v-for="site in directorySites" :key="site.id" class="site-link" :href="site.base_url">
-          <i v-if="site.icon" :class="site.icon" aria-hidden="true"></i>
-          <span>
-            <strong>{{ site.name }}</strong>
-            <small>{{ site.description }}</small>
-          </span>
-        </a>
-      </div>
+    <section v-else-if="activeWorkspace === 'launcher'" class="services-workspace account-home">
+      <Card>
+        <template #title>Account Settings</template>
+        <template #content>
+          <form class="form-grid" @submit.prevent="saveProfile">
+            <img v-if="currentUser.avatar_url" :src="currentUser.avatar_url" class="avatar-preview" alt="" />
+            <InputText v-model="profileForm.displayName" placeholder="Display name" />
+            <InputText v-model="profileForm.email" placeholder="Email" />
+            <InputText v-model="profileForm.phone" placeholder="Phone" />
+            <InputText v-model="profileForm.timezone" placeholder="Timezone" />
+            <input type="file" accept="image/*" @change="uploadProfileAvatar" />
+            <div class="button-row">
+              <Button type="submit" label="Save profile" icon="pi pi-save" />
+              <Button type="button" label="Change password" icon="pi pi-key" severity="secondary" @click="changePassword" />
+            </div>
+          </form>
+        </template>
+      </Card>
     </section>
 
     <section v-else class="services-workspace">
