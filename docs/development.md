@@ -36,6 +36,14 @@ docker compose run --rm central_db_backup sh -c 'PGPASSWORD="$POSTGRES_PASSWORD"
 docker compose up -d
 ```
 
+## Mobile Debug APK
+
+The auth API can expose a deployment-staged Android debug APK to authenticated
+users. Set `ANDROID_APK_DIR` to the directory containing
+`assistant-debug.apk` and optional `assistant-debug.json`. The Android tab shows
+a download action only when the artifact exists. The file is served through an
+authenticated API route, not as public static content.
+
 ## Production Checks
 
 `APP_ENV=production` fails startup when `SESSION_KEY`, `POSTGRES_PASSWORD`, or `PUBLIC_URL` still use local/default values. Keep `PUBLIC_URL` to the scheme and host only, put the ingress path in `APP_BASE_PATH`, and leave `VITE_APP_BASE_PATH` and `VITE_API_BASE_URL` blank unless you intentionally need frontend-specific overrides.

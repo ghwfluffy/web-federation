@@ -107,21 +107,8 @@ select {
   margin-bottom: 20px;
 }
 
-.launcher-shell,
 .services-workspace {
   margin-top: 20px;
-}
-
-.launcher-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
-}
-
-.services-toolbar {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 14px;
 }
 
 .auth-grid,
@@ -154,6 +141,49 @@ select {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   margin-top: 16px;
+}
+
+.android-download {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.android-download__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.android-download__details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  color: #64748b;
+}
+
+.android-download__details div {
+  display: grid;
+  gap: 2px;
+}
+
+.android-download__details dt {
+  color: #17202a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.android-download__details dd {
+  margin: 0;
+}
+
+.empty-note {
+  color: #64748b;
+  margin: 0;
 }
 
 .site-link {

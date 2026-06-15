@@ -56,6 +56,16 @@ export interface DirectorySiteListPayload {
   sites: DirectorySiteSummary[];
 }
 
+export interface MobileAndroidAppPayload {
+  available: boolean;
+  artifact: string | null;
+  version_name: string | null;
+  version_code: number | null;
+  built_at: string | null;
+  size_bytes: number | null;
+  download_url: string | null;
+}
+
 function normalizeAppBasePath(value: string | undefined): string {
   const trimmed = (value ?? "/").trim();
   if (trimmed === "" || trimmed === "/") {

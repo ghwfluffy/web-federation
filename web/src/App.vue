@@ -29,6 +29,7 @@ import {
   postJson,
   requestJson,
   uploadAvatar,
+  type MobileAndroidAppPayload,
   type RegistrationCodeSummary,
   type DirectorySiteListPayload,
   type DirectorySiteSummary,
@@ -44,8 +45,8 @@ const currentUser = ref<UserSummary | null>(null);
 const users = ref<UserSummary[]>([]);
 const registrationCodes = ref<RegistrationCodeSummary[]>([]);
 const directorySites = ref<DirectorySiteSummary[]>([]);
-const activeWorkspace = ref<"launcher" | "services">("launcher");
-const servicesTab = ref("profile");
+const mobileAndroidApp = ref<MobileAndroidAppPayload | null>(null);
+const servicesTab = ref("apps");
 const bootstrapRequired = ref(false);
 const authTab = ref("login");
 const loading = ref(false);
@@ -125,9 +126,6 @@ const directoryBannerSites = computed<FederatedBannerSite[]>(() =>
   })),
 );
 const bannerSites = computed<FederatedBannerSite[]>(() => {
-  if (activeWorkspace.value === "launcher") {
-    return [];
-  }
   const appSites = directoryBannerSites.value.length > 0
     ? directoryBannerSites.value
     : configuredSites.value.filter((site) => site.slug !== "federated-services");
@@ -149,8 +147,8 @@ function clearSessionState(): void {
   users.value = [];
   registrationCodes.value = [];
   directorySites.value = [];
-  activeWorkspace.value = "launcher";
-  servicesTab.value = "profile";
+  mobileAndroidApp.value = null;
+  servicesTab.value = "apps";
   resetAuthForms();
 }
 
@@ -198,7 +196,6 @@ function applyWorkspaceFromUrl(): void {
   const params = new URLSearchParams(window.location.search);
   const tab = serviceTabFromRoute(params.get("tab"));
   if (tab) {
-    activeWorkspace.value = "services";
     servicesTab.value = tab;
   }
 }
@@ -207,7 +204,7 @@ function serviceTabFromRoute(tab: string | null): string | null {
   if (tab === "account-settings" || tab === "profile") {
     return "profile";
   }
-  if (tab === "users" || tab === "codes" || tab === "apps") {
+  if (tab === "users" || tab === "codes" || tab === "apps" || tab === "android") {
     return tab;
   }
   return null;
@@ -228,13 +225,8 @@ function setWorkspaceUrl(tab: string | null): void {
 }
 
 function openServices(tab = "apps"): void {
-  activeWorkspace.value = "services";
   servicesTab.value = tab;
   setWorkspaceUrl(tab);
-}
-
-function openLauncher(): void {
-  openServices("apps");
 }
 
 function handleBannerAction(action: string): void {
@@ -250,7 +242,7 @@ async function restoreSession(): Promise<void> {
     if (redirectToReturnTo()) {
       return;
     }
-    await loadDirectory();
+    await Promise.all([loadDirectory(), loadMobileAndroidApp()]);
   } catch {
     currentUser.value = null;
     const bootstrapStatus = await fetchBootstrapStatus();
@@ -299,7 +291,7 @@ async function submitAuth(mode: "bootstrap" | "login" | "register"): Promise<voi
     if (redirectToReturnTo()) {
       return;
     }
-    await Promise.all([loadDirectory(), loadAdminData()]);
+    await Promise.all([loadDirectory(), loadMobileAndroidApp(), loadAdminData()]);
     showSuccess("Signed in.");
   } catch (error) {
     showError(error, "Unable to authenticate.");
@@ -336,6 +328,25 @@ async function loadDirectory(): Promise<void> {
   const response = await requestJson<DirectorySiteListPayload>("/directory/sites");
   directorySites.value = response.sites;
 }
+
+async function loadMobileAndroidApp(): Promise<void> {
+  if (!currentUser.value) {
+    mobileAndroidApp.value = null;
+    return;
+  }
+  try {
+    mobileAndroidApp.value = await requestJson<MobileAndroidAppPayload>("/mobile/android-app");
+  } catch {
+    mobileAndroidApp.value = null;
+  }
+}
+
+const mobileAndroidDownloadUrl = computed(() => {
+  if (!mobileAndroidApp.value?.available || !mobileAndroidApp.value.download_url) {
+    return null;
+  }
+  return mobileAndroidApp.value.download_url;
+});
 
 async function saveProfile(): Promise<void> {
   try {
@@ -496,9 +507,7 @@ async function copyCode(code: RegistrationCodeSummary): Promise<void> {
 }
 
 watch(servicesTab, (tab) => {
-  if (activeWorkspace.value === "services") {
-    setWorkspaceUrl(tab);
-  }
+  setWorkspaceUrl(tab);
 });
 
 onMounted(async () => {
@@ -515,7 +524,7 @@ onMounted(async () => {
     <FederatedBanner
       v-if="currentUser"
       app-name="Federated Services"
-      :app-url="authBaseUrl || assetBasePath || '/'"
+      :app-url="federatedServicesSite.baseUrl"
       current-app-slug="federated-services"
       :account-settings-url="authAccountSettingsUrl"
       :sites="bannerSites"
@@ -566,33 +575,11 @@ onMounted(async () => {
       </Card>
     </section>
 
-    <section v-else-if="activeWorkspace === 'launcher'" class="services-workspace account-home">
-      <Card>
-        <template #title>Account Settings</template>
-        <template #content>
-          <form class="form-grid" @submit.prevent="saveProfile">
-            <img v-if="currentUser.avatar_url" :src="currentUser.avatar_url" class="avatar-preview" alt="" />
-            <InputText v-model="profileForm.displayName" placeholder="Display name" />
-            <InputText v-model="profileForm.email" placeholder="Email" />
-            <InputText v-model="profileForm.phone" placeholder="Phone" />
-            <InputText v-model="profileForm.timezone" placeholder="Timezone" />
-            <input type="file" accept="image/*" @change="uploadProfileAvatar" />
-            <div class="button-row">
-              <Button type="submit" label="Save profile" icon="pi pi-save" />
-              <Button type="button" label="Change password" icon="pi pi-key" severity="secondary" @click="changePassword" />
-            </div>
-          </form>
-        </template>
-      </Card>
-    </section>
-
     <section v-else class="services-workspace">
-      <div class="services-toolbar">
-        <Button type="button" label="Apps" icon="pi pi-arrow-left" severity="secondary" @click="openLauncher" />
-      </div>
     <Tabs v-model:value="servicesTab" class="workspace-tabs">
       <TabList>
         <Tab value="apps">Apps</Tab>
+        <Tab value="android">Android</Tab>
         <Tab v-if="currentUser.is_admin" value="users">Users</Tab>
         <Tab v-if="currentUser.is_admin" value="codes">Registration Codes</Tab>
         <Tab value="profile">Account Settings</Tab>
@@ -611,6 +598,35 @@ onMounted(async () => {
                   </span>
                 </a>
               </div>
+            </template>
+          </Card>
+        </TabPanel>
+
+        <TabPanel value="android">
+          <Card>
+            <template #title>Android App</template>
+            <template #content>
+              <div v-if="mobileAndroidDownloadUrl" class="android-download">
+                <a class="p-button p-component android-download__button" :href="mobileAndroidDownloadUrl">
+                  <span class="pi pi-android" aria-hidden="true"></span>
+                  <span>Download APK</span>
+                </a>
+                <dl class="android-download__details">
+                  <div v-if="mobileAndroidApp?.version_name">
+                    <dt>Version</dt>
+                    <dd>{{ mobileAndroidApp.version_name }}</dd>
+                  </div>
+                  <div v-if="mobileAndroidApp?.built_at">
+                    <dt>Built</dt>
+                    <dd>{{ new Date(mobileAndroidApp.built_at).toLocaleString() }}</dd>
+                  </div>
+                  <div v-if="mobileAndroidApp?.size_bytes">
+                    <dt>Size</dt>
+                    <dd>{{ Math.round(mobileAndroidApp.size_bytes / 1024) }} KB</dd>
+                  </div>
+                </dl>
+              </div>
+              <p v-else class="empty-note">No Android APK has been staged yet.</p>
             </template>
           </Card>
         </TabPanel>
