@@ -16,6 +16,11 @@ client, and is rotated whenever it mints a fresh short-lived auth session.
 Logout, password changes, and admin password resets revoke active remember
 tokens.
 
+Remembered sign-ins also extend the central-auth browser session row and cookie
+to the remember duration. This keeps mobile and app-directory use from cycling
+through an hourly central session while still preserving remember-token rotation
+as the recovery path if the active session cookie is missing.
+
 ## OAuth Flow
 
 - Consumer apps use Authorization Code with PKCE.

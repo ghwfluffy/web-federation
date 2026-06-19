@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import base64
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from typing import Any, cast
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+
+from app.db.models import AuthSession
 
 ONE_BY_ONE_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
@@ -18,6 +21,24 @@ def bootstrap_admin(client: TestClient) -> dict[str, object]:
     )
     assert response.status_code == 201
     return cast(dict[str, object], response.json()["user"])
+
+
+def latest_active_auth_session(client: TestClient) -> AuthSession:
+    SessionLocal = cast(Any, client.app).state.testing_session_local
+    with SessionLocal() as db:
+        session = db.scalar(
+            select(AuthSession)
+            .where(AuthSession.revoked_at.is_(None))
+            .order_by(AuthSession.expires_at.desc())
+        )
+        assert session is not None
+        return cast(AuthSession, session)
+
+
+def aware_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def test_bootstrap_login_me_logout_flow(isolated_client: TestClient) -> None:
@@ -66,6 +87,42 @@ def test_login_remember_me_refreshes_expired_browser_session(isolated_client: Te
     assert me_response.json()["user"]["username"] == "admin"
     assert isolated_client.cookies.get("auth_session") is not None
     assert isolated_client.cookies.get("auth_remember") != original_remember_cookie
+    assert "Max-Age=2592000" in me_response.headers["set-cookie"]
+    assert aware_utc(latest_active_auth_session(isolated_client).expires_at) > (
+        datetime.now(tz=UTC) + timedelta(days=20)
+    )
+
+
+def test_login_remember_me_creates_long_lived_browser_session(isolated_client: TestClient) -> None:
+    bootstrap_admin(isolated_client)
+    isolated_client.post("/api/v1/auth/logout")
+
+    login_response = isolated_client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "supersafepassword", "remember_me": True},
+    )
+
+    assert login_response.status_code == 200
+    assert "Max-Age=2592000" in login_response.headers["set-cookie"]
+    assert aware_utc(latest_active_auth_session(isolated_client).expires_at) > (
+        datetime.now(tz=UTC) + timedelta(days=20)
+    )
+
+
+def test_login_without_remember_me_keeps_short_browser_session(isolated_client: TestClient) -> None:
+    bootstrap_admin(isolated_client)
+    isolated_client.post("/api/v1/auth/logout")
+
+    login_response = isolated_client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "supersafepassword", "remember_me": False},
+    )
+
+    assert login_response.status_code == 200
+    assert "Max-Age=3600" in login_response.headers["set-cookie"]
+    assert aware_utc(latest_active_auth_session(isolated_client).expires_at) < (
+        datetime.now(tz=UTC) + timedelta(hours=2)
+    )
 
 
 def test_login_without_remember_me_clears_existing_remember_cookie(isolated_client: TestClient) -> None:

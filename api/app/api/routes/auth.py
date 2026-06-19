@@ -59,6 +59,7 @@ class AuthResolution:
     session: AuthSession
     session_token: str | None = None
     remember_token: str | None = None
+    session_cookie_max_age_seconds: int | None = None
 
 
 def utcnow() -> datetime:
@@ -97,11 +98,21 @@ def serialize_user(user: User, settings: Settings) -> UserSummary:
     )
 
 
-def set_session_cookie(response: Response, *, settings: Settings, raw_token: str) -> None:
+def remember_max_age_seconds(settings: Settings) -> int:
+    return settings.remember_duration_days * 24 * 60 * 60
+
+
+def set_session_cookie(
+    response: Response,
+    *,
+    settings: Settings,
+    raw_token: str,
+    max_age_seconds: int | None = None,
+) -> None:
     response.set_cookie(
         key=settings.session_cookie_name,
         value=encode_signed_token(raw_token, settings.session_key or ""),
-        max_age=settings.session_duration_minutes * 60,
+        max_age=max_age_seconds or settings.session_duration_minutes * 60,
         httponly=True,
         secure=settings.session_cookie_secure,
         samesite="lax",
@@ -147,15 +158,17 @@ def create_session(
     user: User,
     settings: Settings,
     request: Request,
+    duration: timedelta | None = None,
 ) -> tuple[str, AuthSession]:
     raw_token = generate_token()
     now = utcnow()
+    session_duration = duration or timedelta(minutes=settings.session_duration_minutes)
     auth_session = AuthSession(
         user_id=user.id,
         token_hash=hash_token(raw_token),
         created_at=now,
         last_seen_at=now,
-        expires_at=now + timedelta(minutes=settings.session_duration_minutes),
+        expires_at=now + session_duration,
         user_agent=request.headers.get("user-agent"),
         ip_address=request.client.host if request.client else None,
     )
@@ -213,7 +226,12 @@ def apply_auth_cookies(
     settings: Settings,
 ) -> None:
     if resolution.session_token is not None:
-        set_session_cookie(response, settings=settings, raw_token=resolution.session_token)
+        set_session_cookie(
+            response,
+            settings=settings,
+            raw_token=resolution.session_token,
+            max_age_seconds=resolution.session_cookie_max_age_seconds,
+        )
     if resolution.remember_token is not None:
         set_remember_cookie(response, settings=settings, raw_token=resolution.remember_token)
 
@@ -269,6 +287,7 @@ def refresh_session_from_remember_cookie(
         user=refresh_token.user,
         settings=settings,
         request=request,
+        duration=timedelta(days=settings.remember_duration_days),
     )
     raw_remember_token, replacement = create_auth_refresh_token(
         db,
@@ -294,6 +313,7 @@ def refresh_session_from_remember_cookie(
         session=auth_session,
         session_token=raw_session_token,
         remember_token=raw_remember_token,
+        session_cookie_max_age_seconds=remember_max_age_seconds(settings),
     )
 
 
@@ -360,16 +380,26 @@ def bootstrap(
     )
     db.add(user)
     db.flush()
-    raw_token, _auth_session = create_session(db, user=user, settings=settings, request=request)
     revoke_remember_cookie_token(request, db, settings)
     raw_remember_token = None
+    session_max_age_seconds = None
+    session_duration = None
     if payload.remember_me:
+        session_max_age_seconds = remember_max_age_seconds(settings)
+        session_duration = timedelta(days=settings.remember_duration_days)
         raw_remember_token, _remember_token = create_auth_refresh_token(
             db,
             user=user,
             settings=settings,
             request=request,
         )
+    raw_token, _auth_session = create_session(
+        db,
+        user=user,
+        settings=settings,
+        request=request,
+        duration=session_duration,
+    )
     record_audit_event(
         db,
         event_type="auth.bootstrap",
@@ -379,7 +409,12 @@ def bootstrap(
     )
     db.commit()
     db.refresh(user)
-    set_session_cookie(response, settings=settings, raw_token=raw_token)
+    set_session_cookie(
+        response,
+        settings=settings,
+        raw_token=raw_token,
+        max_age_seconds=session_max_age_seconds,
+    )
     if raw_remember_token is not None:
         set_remember_cookie(response, settings=settings, raw_token=raw_remember_token)
     else:
@@ -400,16 +435,26 @@ def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password.")
     if user.is_disabled:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is disabled.")
-    raw_token, _auth_session = create_session(db, user=user, settings=settings, request=request)
     revoke_remember_cookie_token(request, db, settings)
     raw_remember_token = None
+    session_max_age_seconds = None
+    session_duration = None
     if payload.remember_me:
+        session_max_age_seconds = remember_max_age_seconds(settings)
+        session_duration = timedelta(days=settings.remember_duration_days)
         raw_remember_token, _remember_token = create_auth_refresh_token(
             db,
             user=user,
             settings=settings,
             request=request,
         )
+    raw_token, _auth_session = create_session(
+        db,
+        user=user,
+        settings=settings,
+        request=request,
+        duration=session_duration,
+    )
     record_audit_event(
         db,
         event_type="auth.login",
@@ -419,7 +464,12 @@ def login(
     )
     db.commit()
     db.refresh(user)
-    set_session_cookie(response, settings=settings, raw_token=raw_token)
+    set_session_cookie(
+        response,
+        settings=settings,
+        raw_token=raw_token,
+        max_age_seconds=session_max_age_seconds,
+    )
     if raw_remember_token is not None:
         set_remember_cookie(response, settings=settings, raw_token=raw_remember_token)
     else:
@@ -458,16 +508,26 @@ def register(
     )
     db.add(user)
     db.flush()
-    raw_token, _auth_session = create_session(db, user=user, settings=settings, request=request)
     revoke_remember_cookie_token(request, db, settings)
     raw_remember_token = None
+    session_max_age_seconds = None
+    session_duration = None
     if payload.remember_me:
+        session_max_age_seconds = remember_max_age_seconds(settings)
+        session_duration = timedelta(days=settings.remember_duration_days)
         raw_remember_token, _remember_token = create_auth_refresh_token(
             db,
             user=user,
             settings=settings,
             request=request,
         )
+    raw_token, _auth_session = create_session(
+        db,
+        user=user,
+        settings=settings,
+        request=request,
+        duration=session_duration,
+    )
     record_audit_event(
         db,
         event_type="auth.register",
@@ -481,7 +541,12 @@ def register(
     )
     db.commit()
     db.refresh(user)
-    set_session_cookie(response, settings=settings, raw_token=raw_token)
+    set_session_cookie(
+        response,
+        settings=settings,
+        raw_token=raw_token,
+        max_age_seconds=session_max_age_seconds,
+    )
     if raw_remember_token is not None:
         set_remember_cookie(response, settings=settings, raw_token=raw_remember_token)
     else:
