@@ -101,6 +101,7 @@ def test_authorize_seeds_default_oauth_clients(isolated_client: TestClient) -> N
         agent_base_url="/example-three",
         apartment_gate_base_url="/example-four",
         file_share_base_url="/example-five",
+        model_gateway_base_url="/example-six",
     )
     cast(Any, isolated_client.app).dependency_overrides[get_settings] = lambda: test_settings
     bootstrap_admin(isolated_client)
@@ -140,6 +141,9 @@ def test_authorize_seeds_default_oauth_clients(isolated_client: TestClient) -> N
         "http://localhost:8190/example-four/auth/oauth/callback"
     ]
     assert clients["file-share"].redirect_uris == ["http://localhost:8190/example-five/auth/oauth/callback"]
+    assert clients["model-gateway"].redirect_uris == [
+        "http://localhost:8190/example-six/api/v1/auth/oauth/callback"
+    ]
 
 
 def test_authorize_redirects_unauthenticated_user_to_auth_ui(isolated_client: TestClient) -> None:

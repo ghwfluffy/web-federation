@@ -64,6 +64,12 @@ def default_oauth_clients(settings: Settings) -> list[DefaultOAuthClient]:
             app_base_url=settings.file_share_base_url,
             callback_path="/auth/oauth/callback",
         ),
+        DefaultOAuthClient(
+            client_id="model-gateway",
+            name="Model Gateway",
+            app_base_url=settings.model_gateway_base_url,
+            callback_path="/api/v1/auth/oauth/callback",
+        ),
     ]
 
 
@@ -156,6 +162,17 @@ def ensure_default_sites(db: Session, settings: Settings) -> None:
             icon="pi pi-share-alt",
             oauth_client_id=clients_by_client_id["file-share"].id,
             display_order=50,
+            created_at=now,
+            updated_at=now,
+        ),
+        SiteDirectoryEntry(
+            slug="model-gateway",
+            name="Model Gateway",
+            description="Manage model access keys, account connections, limits, and usage metrics.",
+            base_url=settings.model_gateway_base_url,
+            icon="pi pi-chart-line",
+            oauth_client_id=clients_by_client_id["model-gateway"].id,
+            display_order=60,
             created_at=now,
             updated_at=now,
         ),

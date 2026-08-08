@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     agent_base_url: str = "/agent"
     apartment_gate_base_url: str = "/gate"
     file_share_base_url: str = "/filewiz"
+    model_gateway_base_url: str = "/model-gateway"
     android_apk_dir: str = ""
     android_apk_filename: str = "assistant-debug.apk"
     android_apk_metadata_filename: str = "assistant-debug.json"

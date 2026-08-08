@@ -43,6 +43,7 @@ or default directory seeding runs and the client rows do not already exist:
 - `agent`, redirecting to `${PUBLIC_URL}${AGENT_BASE_URL}/api/v1/auth/oauth/callback`
 - `apartment-gate`, redirecting to `${PUBLIC_URL}${APARTMENT_GATE_BASE_URL}/auth/oauth/callback`
 - `file-share`, redirecting to `${PUBLIC_URL}${FILE_SHARE_BASE_URL}/auth/oauth/callback`
+- `model-gateway`, redirecting to `${PUBLIC_URL}${MODEL_GATEWAY_BASE_URL}/api/v1/auth/oauth/callback`
 
 Existing client rows are not overwritten by the defaults. This lets operators
 customize or disable clients intentionally while still making fresh databases

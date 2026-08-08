@@ -18,6 +18,7 @@ def test_directory_defaults_are_visible_to_authenticated_users(isolated_client: 
         "agent",
         "apartment-gate",
         "file-share",
+        "model-gateway",
     ]
 
 
