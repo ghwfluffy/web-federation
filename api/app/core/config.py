@@ -6,7 +6,7 @@ from secrets import token_urlsafe
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import field_validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
@@ -19,6 +19,17 @@ def normalize_path_prefix(value: str) -> str:
         return ""
     with_leading_slash = trimmed if trimmed.startswith("/") else f"/{trimmed}"
     return with_leading_slash.rstrip("/")
+
+
+class ExtraFederatedApp(BaseModel):
+    client_id: str
+    name: str
+    slug: str
+    description: str
+    base_url: str
+    callback_path: str = "/api/v1/auth/oauth/callback"
+    icon: str = "pi pi-box"
+    display_order: int = 100
 
 
 class Settings(BaseSettings):
@@ -53,12 +64,26 @@ class Settings(BaseSettings):
     apartment_gate_base_url: str = "/gate"
     file_share_base_url: str = "/filewiz"
     model_gateway_base_url: str = "/model-gateway"
+    extra_federated_apps: list[ExtraFederatedApp] = Field(default_factory=list)
     android_apk_dir: str = ""
     android_apk_filename: str = "assistant-debug.apk"
     android_apk_metadata_filename: str = "assistant-debug.json"
     backup_dir: str
     backup_script_path: str
     cors_origins: list[str]
+
+    @field_validator("extra_federated_apps")
+    @classmethod
+    def extra_federated_apps_must_be_unique(
+        cls, value: list[ExtraFederatedApp]
+    ) -> list[ExtraFederatedApp]:
+        client_ids = [app.client_id for app in value]
+        slugs = [app.slug for app in value]
+        if len(client_ids) != len(set(client_ids)) or len(slugs) != len(set(slugs)):
+            raise ValueError("extra federated app client ids and slugs must be unique")
+        if any(not app.callback_path.startswith("/") or app.callback_path.startswith("//") for app in value):
+            raise ValueError("extra federated app callback paths must be local absolute paths")
+        return value
 
     @field_validator("public_url")
     @classmethod

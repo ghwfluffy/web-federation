@@ -33,7 +33,7 @@ def public_app_base_url(settings: Settings, app_base_url: str) -> str:
 
 
 def default_oauth_clients(settings: Settings) -> list[DefaultOAuthClient]:
-    return [
+    built_in = [
         DefaultOAuthClient(
             client_id="goals",
             name="Goal Tracker",
@@ -70,6 +70,15 @@ def default_oauth_clients(settings: Settings) -> list[DefaultOAuthClient]:
             app_base_url=settings.model_gateway_base_url,
             callback_path="/api/v1/auth/oauth/callback",
         ),
+    ]
+    return built_in + [
+        DefaultOAuthClient(
+            client_id=app.client_id,
+            name=app.name,
+            app_base_url=app.base_url,
+            callback_path=app.callback_path,
+        )
+        for app in settings.extra_federated_apps
     ]
 
 
@@ -177,4 +186,18 @@ def ensure_default_sites(db: Session, settings: Settings) -> None:
             updated_at=now,
         ),
     ]
+    default_entries.extend(
+        SiteDirectoryEntry(
+            slug=app.slug,
+            name=app.name,
+            description=app.description,
+            base_url=app.base_url,
+            icon=app.icon,
+            oauth_client_id=clients_by_client_id[app.client_id].id,
+            display_order=app.display_order,
+            created_at=now,
+            updated_at=now,
+        )
+        for app in settings.extra_federated_apps
+    )
     db.add_all([entry for entry in default_entries if entry.slug not in existing_slugs])

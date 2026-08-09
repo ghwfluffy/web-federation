@@ -45,6 +45,12 @@ or default directory seeding runs and the client rows do not already exist:
 - `file-share`, redirecting to `${PUBLIC_URL}${FILE_SHARE_BASE_URL}/auth/oauth/callback`
 - `model-gateway`, redirecting to `${PUBLIC_URL}${MODEL_GATEWAY_BASE_URL}/api/v1/auth/oauth/callback`
 
+Private deployment repositories may add browser clients and directory entries
+through the `EXTRA_FEDERATED_APPS` JSON array. Each item supplies `client_id`,
+`name`, `slug`, `description`, `base_url`, and optional `callback_path`, `icon`,
+and `display_order`. This keeps private app names and routes in deployment config
+instead of hard-coding them into this reusable auth repository.
+
 Existing client rows are not overwritten by the defaults. This lets operators
 customize or disable clients intentionally while still making fresh databases
 usable from configuration alone.

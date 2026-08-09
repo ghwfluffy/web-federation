@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.core.config import Settings
+
 from tests.test_auth_api import bootstrap_admin
 
 
@@ -20,6 +22,21 @@ def test_directory_defaults_are_visible_to_authenticated_users(isolated_client: 
         "file-share",
         "model-gateway",
     ]
+
+
+def test_private_extra_federated_app_can_be_configured_without_hard_coding_it() -> None:
+    settings = Settings(
+        app_env="test",
+        app_base_path="",
+        extra_federated_apps=[{
+            "client_id": "private-tool",
+            "name": "Private Tool",
+            "slug": "private-tool",
+            "description": "A privately configured tool.",
+            "base_url": "/private-tool",
+        }],
+    )
+    assert settings.extra_federated_apps[0].callback_path == "/api/v1/auth/oauth/callback"
 
 
 def test_directory_defaults_backfill_missing_sites(isolated_client: TestClient) -> None:
