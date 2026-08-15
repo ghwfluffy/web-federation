@@ -3,6 +3,7 @@ import {
   FederatedBanner,
   accountSettingsUrl,
   createGhwizFederatedSites,
+  parseFederatedSites,
   type FederatedBannerSite,
   type FederatedBannerUser,
 } from "@ghwiz/federated-banner";
@@ -89,6 +90,7 @@ const authBaseUrl = computed(() => {
   const configured = import.meta.env.VITE_AUTH_BASE_URL?.trim() || appBasePath;
   return normalizeAssetBasePath(configured);
 });
+const deploymentSites = parseFederatedSites(import.meta.env.VITE_FEDERATED_APPS);
 const bannerUser = computed<FederatedBannerUser | null>(() => {
   if (!currentUser.value) {
     return null;
@@ -101,7 +103,7 @@ const bannerUser = computed<FederatedBannerUser | null>(() => {
   };
 });
 const configuredSites = computed<FederatedBannerSite[]>(() =>
-  createGhwizFederatedSites({
+  deploymentSites.length > 0 ? deploymentSites : createGhwizFederatedSites({
     authBaseUrl: authBaseUrl.value || assetBasePath || "/",
     goalsBaseUrl: import.meta.env.VITE_GOALS_BASE_URL,
     moneyPlannerBaseUrl: import.meta.env.VITE_MONEY_PLANNER_BASE_URL,

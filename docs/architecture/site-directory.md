@@ -22,6 +22,16 @@ operators can intentionally rename, hide, reorder, or customize launch links:
 - Apartment Gate from `APARTMENT_GATE_BASE_URL`, default `/gate`
 - File Share from `FILE_SHARE_BASE_URL`, default `/filewiz`
 
+Deployments may add first-party directory entries and OAuth clients through
+`EXTRA_FEDERATED_APPS`. These entries use the same lazy missing-only creation
+behavior as built-ins, so an operator's existing row remains authoritative.
+This lets a deployment-private app join the authenticated launcher without
+placing its private route prefix in this repository.
+
+The authenticated directory API remains authoritative for the web banner. A
+parent may also provide `VITE_FEDERATED_APPS` as a complete build-time fallback
+so transient directory-load failures do not restore an outdated partial list.
+
 Directory URLs are launch links only. Identity, email, phone, timezone,
 password, registration-code, and profile-image management remains in the auth
 site. Consumer apps should link back to configured auth management URLs when

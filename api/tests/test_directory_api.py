@@ -3,7 +3,6 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
-
 from tests.test_auth_api import bootstrap_admin
 
 
@@ -28,13 +27,15 @@ def test_private_extra_federated_app_can_be_configured_without_hard_coding_it() 
     settings = Settings(
         app_env="test",
         app_base_path="",
-        extra_federated_apps=[{
-            "client_id": "private-tool",
-            "name": "Private Tool",
-            "slug": "private-tool",
-            "description": "A privately configured tool.",
-            "base_url": "/private-tool",
-        }],
+        extra_federated_apps=[
+            {
+                "client_id": "private-tool",
+                "name": "Private Tool",
+                "slug": "private-tool",
+                "description": "A privately configured tool.",
+                "base_url": "/private-tool",
+            }
+        ],
     )
     assert settings.extra_federated_apps[0].callback_path == "/api/v1/auth/oauth/callback"
 

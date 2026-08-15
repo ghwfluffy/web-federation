@@ -74,9 +74,7 @@ class Settings(BaseSettings):
 
     @field_validator("extra_federated_apps")
     @classmethod
-    def extra_federated_apps_must_be_unique(
-        cls, value: list[ExtraFederatedApp]
-    ) -> list[ExtraFederatedApp]:
+    def extra_federated_apps_must_be_unique(cls, value: list[ExtraFederatedApp]) -> list[ExtraFederatedApp]:
         client_ids = [app.client_id for app in value]
         slugs = [app.slug for app in value]
         if len(client_ids) != len(set(client_ids)) or len(slugs) != len(set(slugs)):
